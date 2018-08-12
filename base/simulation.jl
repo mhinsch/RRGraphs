@@ -9,10 +9,34 @@ mutable struct Model
 	knowledge
 end
 
+# TODO
+function quality(k :: Knowledge)
+	1.0
+end
+
 
 function decide_move(agent :: Agent)
-	l = agent.loc
-	
+	loc = agent.loc
+	candidates = [knows_at(agent, loc.x, loc.y-1), 
+		knows_at(agent, loc.x, loc.y+1),
+		knows_at(agent, loc.x-1, loc.y),
+		knows_at(agent, loc.x+1, loc.y)]
+
+	best = 0.0
+	l = 0
+	for c in eachindex(candidates)
+		q = quality(candidates[c])
+		if q > best
+			best = q
+			l = c
+		end
+	end
+
+	if l > 0
+		return candidates[l].loc
+	else
+		return Pos(0, 0)
+	end
 end
 
 
@@ -72,7 +96,7 @@ end
 
 
 function step_agent_info!(agent, model)
-# spread info to other agent/public
+# TODO spread info to other agent/public
 end
 
 
@@ -80,12 +104,12 @@ end
 
 
 function handle_departures!(model::World)
-# regularly add new agents
+# TODO regularly add new agents
 end
 
 
 function handle_arrivals!(model::World)
-# remove arrived agents
+# TODO remove arrived agents
 end
 
 
