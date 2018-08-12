@@ -1,3 +1,6 @@
+module Util
+
+export drop!
 
 function drop!(cont::C, elem::E) where C, E
 	for i in eachindex(cont)
@@ -11,4 +14,4 @@ function drop!(cont::C, elem::E) where C, E
 	return 0
 end
 
-
+end

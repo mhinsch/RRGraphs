@@ -1,4 +1,5 @@
-include("util.jl")
+push!(LOAD_PATH, ".")
+using Util
 
 
 struct Knowledge
@@ -41,6 +42,21 @@ struct Location
 	people :: Vector{Agent}
 end
 
+
+prop(n::Symbol) = n == :friction ? 0 : (n == :control ? 1 : (n == :information ? 2 : -1))
+
+# named properties
+get_p(l :: Location, p :: Symbol) = l.property[prop(n)]
+set_p(l :: Location, p :: Symbol, v :: Float64) = l.property[prop(n) = v]
+# resources
+get_r(l :: Location, r :: Int) = l.property[i+3]
+set_r(l :: Location, r :: Int, v :: Float64) = l.property[i+3] = v
+
+
+# construct empty location
+function Location()
+	Location(Vector{Float64}(10), 0, Vector{Agent}())
+end
 
 mutable struct World
 	area :: Matrix{Location}

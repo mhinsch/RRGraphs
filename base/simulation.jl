@@ -1,5 +1,3 @@
-include("world.jl")
-
 
 mutable struct Model
 	world :: World

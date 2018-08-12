@@ -1,3 +1,7 @@
+module GeoGraph
+
+export create_random_geo_graph
+
 function create_random_geo_graph(nnodes :: Int64, thresh :: Float64)
 	sq_thresh = thresh * thresh
 
@@ -17,4 +21,7 @@ function create_random_geo_graph(nnodes :: Int64, thresh :: Float64)
 	end
 
 	(nodes, links)
+end
+
+
 end
