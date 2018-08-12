@@ -1,3 +1,5 @@
+include("world.jl")
+
 
 mutable struct Model
 	world :: World
@@ -8,7 +10,10 @@ mutable struct Model
 end
 
 
-include("init.jl")
+function decide_move(agent :: Agent)
+	l = agent.loc
+	
+end
 
 
 function simulate!(model :: Model, steps)
@@ -82,3 +87,6 @@ end
 function handle_arrivals!(model::World)
 # remove arrived agents
 end
+
+
+include("init.jl")

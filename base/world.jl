@@ -1,19 +1,22 @@
-push!(LOAD_PATH, ".")
 using Util
 
 
+struct Pos
+	x, y :: Int
+end
+
 struct Knowledge
-	loc :: Tuple{Int, Int}
+	loc :: Pos
 	values :: Vector{Float64}
 	trust :: Vector{Float64}	
 end
 
 
-const Unknown = Knowledge((0, 0), [0.0], [0.0])
+const Unknown = Knowledge(Pos(0, 0), [0.0], [0.0])
 
 
 mutable struct Agent
-	loc :: Tuple{Int, Int}
+	loc :: Pos
 	knowledge :: Vector{Knowledge}
 	capital :: Float64
 	contacts
@@ -23,7 +26,7 @@ end
 # this is very preliminary and should be optimized
 function get_knowledge_at(knowledge :: Vector{Knowledge}, x, y)
 	for k in knowledge
-		if k.loc == (x, y)
+		if k.loc == Pos(x, y)
 			return k
 		end
 	end
@@ -47,10 +50,10 @@ prop(n::Symbol) = n == :friction ? 0 : (n == :control ? 1 : (n == :information ?
 
 # named properties
 get_p(l :: Location, p :: Symbol) = l.property[prop(n)]
-set_p(l :: Location, p :: Symbol, v :: Float64) = l.property[prop(n) = v]
+set_p!(l :: Location, p :: Symbol, v :: Float64) = l.property[prop(n) = v]
 # resources
 get_r(l :: Location, r :: Int) = l.property[i+3]
-set_r(l :: Location, r :: Int, v :: Float64) = l.property[i+3] = v
+set_r!(l :: Location, r :: Int, v :: Float64) = l.property[i+3] = v
 
 
 # construct empty location
@@ -73,14 +76,11 @@ find_location(world, x, y) = world.area[x, y]
 
 
 function move!(world, agent, x, y)
-	xold, yold = agent.loc
-	remove_agent!(world.area[xold, yold], agent)
+	pos_old = agent.loc
+	remove_agent!(world.area[pos_old.x, pos_old.y], agent)
 	loc = find_location(world, x, y)
 	agent.loc = loc
 	add_agent!(loc, agent)
 end
 
 
-function decide_move(agent :: Agent)
-	
-end
