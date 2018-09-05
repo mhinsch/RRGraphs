@@ -107,12 +107,30 @@ function step_agent_stay!(agent, world)
 end
 
 
-# TODO 
-function explore!(agent)
+# arbitrary, very simplistic implementation
+# TODO discuss with group
+# TODO parameterize
+function explore!(agent, world)
+	# knowledge
+	k = knows_here(agent)
+	# location
+	l = find_location(world, agent.loc.x, agent.loc.y)
+
+	# gain local experience
+	k.experience += (1.0 - k.experience) * (1.0 - l.opaqueness)
+
+	# gain information on local properties
+	for p in eachindex(k.values)
+		# stochasticity?
+		k.values[i] += (l.properties[i] - k.values[i]) * k.experience
+		k.trust[i] += (1.0 - k.trust[i]) * k.experience
+	end
 end
 
 
-
+# meet other agents, gain contacts and information
+function mingle!(agent)
+end
 
 
 # TODO spread info to other agent/public

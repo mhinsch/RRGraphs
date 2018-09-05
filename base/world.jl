@@ -7,14 +7,16 @@ struct Pos
 end
 
 # a piece of knowledge an agent has about a location
-struct Knowledge
+mutable struct Knowledge
 	# where
 	loc :: Pos
 	# property values the agent expects
 	values :: Vector{Float64}
 	# how certain it thinks they are
 	trust :: Vector{Float64}
-	
+	# actual knowledge about a location 
+	# (counteracts opaqueness)
+	experience :: Float64
 end
 
 
@@ -36,6 +38,7 @@ end
 
 
 # this is very preliminary and should be optimized
+# TODO check if it's ok that this returns a reference
 function get_knowledge_at(knowledge :: Vector{Knowledge}, x, y)
 	for k in knowledge
 		if k.loc == Pos(x, y)
@@ -48,6 +51,7 @@ end
 
 
 knows_at(agent :: Agent, x, y) = get_knowledge_at(agent.knowledge, x, y)
+knows_here(agent :: Agent) = knows_at(agent, agent.loc.x, agent.loc.y)
 
 
 # one grid point for now (could be node on a graph)
