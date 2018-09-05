@@ -1,24 +1,36 @@
 using Util
 
 
+# simple grid coords for now
 struct Pos
 	x, y :: Int
 end
 
+# a piece of knowledge an agent has about a location
 struct Knowledge
+	# where
 	loc :: Pos
+	# property values the agent expects
 	values :: Vector{Float64}
-	trust :: Vector{Float64}	
+	# how certain it thinks they are
+	trust :: Vector{Float64}
+	
 end
 
 
 const Unknown = Knowledge(Pos(0, 0), [0.0], [0.0])
 
 
+# migrants
 mutable struct Agent
+	# current position
 	loc :: Pos
+	# what it thinks it knows about the world
+	# TODO optimize data structure for access by location
 	knowledge :: Vector{Knowledge}
+	# abstract capital, includes time & money
 	capital :: Float64
+	# people at home & in target country, other migrants
 	contacts
 end
 
@@ -38,14 +50,18 @@ end
 knows_at(agent :: Agent, x, y) = get_knowledge_at(agent.knowledge, x, y)
 
 
+# one grid point for now (could be node on a graph)
 struct Location
-	# friction, control, information, resource1, resource2, ...
+	# friction, control, information, resource_1, resource_2, ..., resource_n
 	properties :: Vector{Float64}
+	# how difficult it is to access resources
 	opaqueness :: Float64
+	# migrants present
 	people :: Vector{Agent}
 end
 
 
+# helper to access properties by name
 prop(n::Symbol) = n == :friction ? 0 : (n == :control ? 1 : (n == :information ? 2 : -1))
 
 # named properties
@@ -60,6 +76,7 @@ set_r!(l :: Location, r :: Int, v :: Float64) = l.property[i+3] = v
 function Location()
 	Location(Vector{Float64}(10), 0, Vector{Agent}())
 end
+
 
 mutable struct World
 	area :: Matrix{Location}

@@ -20,6 +20,7 @@ function create_landscape(xsize, ysize)
 end
 
 
+# arbitrary values for now
 function setup_city!(loc)
 	set_p(loc, :friction, 0.2)
 	set_p(loc, :control, 0.8)

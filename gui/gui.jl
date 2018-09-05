@@ -37,7 +37,8 @@ bkg = SDL2.Color(200, 200, 200, 255)
 #TTF_SizeText(font, txt, pointer(fx), pointer(fy))
 #fx,fy = fx[1],fy[1]
 
-include("../base/rand_geo_graph.jl")
+include("../GeoGraph/src/GeoGraph.jl")
+using .GeoGraph
 
 nodes, links = create_random_geo_graph(100, 0.2)
 nodes = map(x->x.*size, nodes)

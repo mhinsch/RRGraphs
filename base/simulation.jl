@@ -9,19 +9,30 @@ mutable struct Model
 	knowledge
 end
 
-# TODO
+
+# TODO include
+# - effects of certainty vs. attractiveness
+# - location (i.e. closer to target)
+# - plans (?)
+# - transport (?)
 function quality(k :: Knowledge)
 	1.0
 end
 
 
+# currently very simplistically selects the von Neumann neighbour with the
+# highest quality
+# TODO include transport?
+# TODO include plans?
 function decide_move(agent :: Agent)
 	loc = agent.loc
+	# von Neumann neighbourhood
 	candidates = [knows_at(agent, loc.x, loc.y-1), 
 		knows_at(agent, loc.x, loc.y+1),
 		knows_at(agent, loc.x-1, loc.y),
 		knows_at(agent, loc.x+1, loc.y)]
 
+	# find best neighbour
 	best = 0.0
 	l = 0
 	for c in eachindex(candidates)
@@ -32,6 +43,7 @@ function decide_move(agent :: Agent)
 		end
 	end
 
+	# if there's a best neighbour, go there
 	if l > 0
 		return candidates[l].loc
 	else
@@ -83,7 +95,7 @@ function step_agent_move!(agent, world)
 	loc_old = agent.loc
 	loc = decide_move(agent)
 	costs_move!(agent, loc)
-	move!(world, agent, loc...)
+	move!(world, agent, loc.x, loc.y)
 end
 
 
@@ -95,22 +107,37 @@ function step_agent_stay!(agent, world)
 end
 
 
-function step_agent_info!(agent, model)
+# TODO 
+function explore!(agent)
+end
+
+
+
+
+
 # TODO spread info to other agent/public
+# - local agents
+# 	- all combis or hub and spokes?
+# - social network
+# - public information
+function step_agent_info!(agent, model)
 end
 
 
 # *** entry/exit
 
 
-function handle_departures!(model::World)
 # TODO regularly add new agents
+# - need to be inserted at rand loc at origin
+# - fixed rate over time?
+function handle_departures!(model::World)
 end
 
 
-function handle_arrivals!(model::World)
 # TODO remove arrived agents
+# - all agents at target get removed from world
+# - *but* remain in network!
+function handle_arrivals!(model::World)
 end
 
 
-include("init.jl")
