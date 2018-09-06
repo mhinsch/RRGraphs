@@ -147,7 +147,35 @@ end
 
 
 function exchange_info!(a1, a2)
-	
+	for k in a1.knowledge
+		l = k.loc
+		k_other = knows_at(a2, l.x, l.y)
+		
+		# other has no knowledge at this location, just add it
+		if k_other == Unknown
+			# TODO full transfer of experience?
+			learn!(a2, k)
+			continue
+		end
+
+		# TODO full transfer?
+		if k.experience > k.other_experience
+			k_other.experience = k.experience
+		else
+			k.experience = k_other.experience
+		end
+
+		# both have knowledge at l, compare by trust and transfer accordingly
+		for i in eachindex(k.values)
+			if k.trust[i] > k_other.trust[i]
+				k_other.value[i] = k.value[i]
+				k_other.trust[i] = k.value[i]
+			else
+				k.value[i] = k_other.value[i]
+				k.trust[i] = k_other.value[i]
+			end
+		end
+	end
 end
 
 
