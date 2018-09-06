@@ -103,7 +103,6 @@ function step_agent_stay!(agent, world)
 	costs_stay!(agent)
 	explore!(agent)
 	mingle!(agent)
-	learn!(agent)
 end
 
 
@@ -128,14 +127,31 @@ function explore!(agent, world)
 end
 
 
+# TODO parameterize
 # meet other agents, gain contacts and information
-function mingle!(agent)
+function mingle!(agent, location)
+	for a in location.people
+		if a == agent
+			continue
+		end
+
+		# agents keep in contact
+		if rand() < 0.3	# arbitrary number
+			add_to_contacts!(agent, a)
+			add_to_contacts!(a, agent)
+		end
+		
+		exchange_info!(agent, a)
+	end
+end
+
+
+function exchange_info!(a1, a2)
+	
 end
 
 
 # TODO spread info to other agent/public
-# - local agents
-# 	- all combis or hub and spokes?
 # - social network
 # - public information
 function step_agent_info!(agent, model)

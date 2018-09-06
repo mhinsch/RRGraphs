@@ -33,7 +33,16 @@ mutable struct Agent
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
-	contacts
+	contacts :: Vector{Agent}
+end
+
+
+function add_to_contacts!(agent, a)
+	if a in agent.contacts
+		return
+	end
+
+	push!(agent.contacts, a)
 end
 
 
