@@ -147,16 +147,21 @@ end
 
 
 function exchange_info!(a1, a2)
+	# TODO imperfect exchange (e.g. skip random knowledge pieces)
+
 	for k in a1.knowledge
 		l = k.loc
 		k_other = knows_at(a2, l.x, l.y)
 		
-		# other has no knowledge at this location, just add it
+		# *** only a1 knows the location
+
 		if k_other == Unknown
 			# TODO full transfer of experience?
 			learn!(a2, k)
 			continue
 		end
+
+		# *** both know the location
 
 		# TODO full transfer?
 		if k.experience > k.other_experience
@@ -174,6 +179,20 @@ function exchange_info!(a1, a2)
 				k.value[i] = k_other.value[i]
 				k.trust[i] = k_other.value[i]
 			end
+		end
+	end
+
+	# *** transfer for location a2 knows but a1 doesn't
+	
+	for k in a2.knowledge
+		l = k.loc
+		k_other = knows_at(a1, l.x, l.y)
+		
+		# other has no knowledge at this location, just add it
+		if k_other == Unknown
+			# TODO full transfer of experience?
+			learn!(a2, k)
+			continue
 		end
 	end
 end

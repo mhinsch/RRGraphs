@@ -63,6 +63,9 @@ knows_at(agent :: Agent, x, y) = get_knowledge_at(agent.knowledge, x, y)
 knows_here(agent :: Agent) = knows_at(agent, agent.loc.x, agent.loc.y)
 
 
+learn!(agent, k) = push!(agent.knowledge, k)
+
+
 # one grid point for now (could be node on a graph)
 struct Location
 	# friction, control, information, resource_1, resource_2, ..., resource_n
