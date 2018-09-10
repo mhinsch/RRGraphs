@@ -37,6 +37,9 @@ mutable struct Agent
 end
 
 
+Agent(l :: Pos, c :: Float64) = Agent(l, Vector{Knowledge}(0), c, Vector{Agent}(0))
+
+
 function add_to_contacts!(agent, a)
 	if a in agent.contacts
 		return

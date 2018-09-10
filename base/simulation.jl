@@ -210,19 +210,28 @@ end
 # *** entry/exit
 
 
-# TODO regularly add new agents
-# - need to be inserted at rand loc at origin
-# - fixed rate over time?
-function handle_departures!(model::World)
+# TODO fixed rate over time?
+# TODO parameterize
+# TODO initial contacts
+# TODO initial knowledge
+function handle_departures!(model::Model)
+	for i in 1:100
+		x = 0
+		y = rand(1:size(model.world.area)[1])
+		a = Agent(Pos(x, y), 100.0)
+		l = find_location(model.world, x, y)
+		add_agent!(l, a)
+		push!(model.people, a)
+		push!(model.migrants, a)
+	end
 end
 
 
 # all agents at target get removed from world (but remain in network)
-function handle_arrivals!(model::World)
+function handle_arrivals!(model::Model)
 	# go backwards, so that removal doesn't mess up the index
 	for i in length(model.migrants):1
-		# TODO check if coord is correct
-		if model.migrants[i].loc.y >= size(model.world.area)[2]
+		if model.migrants[i].loc.x >= size(model.world.area)[1]
 			drop_at!(model.migrants, i)
 			remove_agent!(world, agent)
 		end
