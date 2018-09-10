@@ -19,3 +19,9 @@ function drop_at!(cont, i)
 	cont[i] = cont[end]
 	pop!(cont)
 end
+
+
+@macro set_to_max!(a, b)
+	esc(:(a > b ? (b = a) : (a=b)))
+end
+

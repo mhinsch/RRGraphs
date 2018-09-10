@@ -170,11 +170,7 @@ function exchange_info!(a1, a2)
 		# *** both know the location
 
 		# TODO full transfer?
-		if k.experience > k.other_experience
-			k_other.experience = k.experience
-		else
-			k.experience = k_other.experience
-		end
+		@set_to_max(k.experience, k.other_experience)
 
 		# both have knowledge at l, compare by trust and transfer accordingly
 		for i in eachindex(k.values)
@@ -226,7 +222,7 @@ function handle_arrivals!(model::World)
 	# go backwards, so that removal doesn't mess up the index
 	for i in length(model.migrants):1
 		# TODO check if coord is correct
-		if model.migrants[i].loc.y >= length(model.world.area)[1]
+		if model.migrants[i].loc.y >= size(model.world.area)[2]
 			drop_at!(model.migrants, i)
 			remove_agent!(world, agent)
 		end
