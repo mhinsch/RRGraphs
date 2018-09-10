@@ -1,12 +1,11 @@
-include("world.jl")
-
+using  Util
 
 mutable struct Model
 	world :: World
 	people :: Vector{Agent}
 	migrants :: Vector{Agent}
-	network
-	knowledge
+#	network
+#knowledge
 end
 
 
@@ -16,7 +15,12 @@ end
 # - plans (?)
 # - transport (?)
 function quality(k :: Knowledge)
-	1.0
+	rand()
+end
+
+function valid_location(l :: Pos, world :: World)
+	l.x > 0 && l.x <= size(world.area)[1] &&
+		l.y > 0 && l.y <= size(world.area)[2]
 end
 
 
@@ -24,20 +28,35 @@ end
 # highest quality
 # TODO include transport?
 # TODO include plans?
-function decide_move(agent :: Agent)
+function decide_move(agent :: Agent, world::World)
 	loc = agent.loc
 	# von Neumann neighbourhood
-	candidates = [knows_at(agent, loc.x, loc.y-1), 
-		knows_at(agent, loc.x, loc.y+1),
-		knows_at(agent, loc.x-1, loc.y),
-		knows_at(agent, loc.x+1, loc.y)]
+	candidates = Knowledge[]
+	if loc.x > 1 
+		push!(candidates, knows_at(agent, loc.x-1, loc.y))
+		if loc.y < size(world.area)[1]
+			push!(candidates, knows_at(agent, loc.x+1, loc.y))
+		end
+	end
+
+	if loc.y > 1 
+		push!(candidates, knows_at(agent, loc.x, loc.y-1))
+		if loc.y < size(world.area)[2]
+			push!(candidates, knows_at(agent, loc.x, loc.y+1))
+		end
+	end
+	
+	println("$(size(candidates)) locs")
 
 	# find best neighbour
 	best = 0.0
 	l = 0
 	for c in eachindex(candidates)
+		println("c: $c")
 		q = quality(candidates[c])
+		println("q: $q")
 		if q > best
+			println(">")
 			best = q
 			l = c
 		end
@@ -45,6 +64,7 @@ function decide_move(agent :: Agent)
 
 	# if there's a best neighbour, go there
 	if l > 0
+		println("l: $(candidates[l].loc)")
 		return candidates[l].loc
 	else
 		return Pos(0, 0)
@@ -53,7 +73,7 @@ end
 
 
 function simulate!(model :: Model, steps)
-	for in in 1:steps
+	for i in 1:steps
 		step_simulation!(model)
 	end
 end
@@ -80,6 +100,14 @@ end
 # *** agent simulation
 
 
+function costs_stay!(a)
+end
+
+
+function costs_move!(a, pos)
+end
+
+
 function step_agent!(agent :: Agent, model::Model)
 	if decide_stay(agent)
 		step_agent_stay!(agent, model.world)
@@ -92,14 +120,19 @@ end
 
 
 # TODO put some real logic here
-function decide_stay
-	rand() > 0.5
+function decide_stay(a)
+	return rand() > 0.5
 end
 
 
 function step_agent_move!(agent, world)
 	loc_old = agent.loc
-	loc = decide_move(agent)
+	loc = decide_move(agent, world)
+	if loc == Pos(0, 0)
+		return
+	end
+
+	println("moving to $(loc.x), $(loc.y)")
 	costs_move!(agent, loc)
 	move!(world, agent, loc.x, loc.y)
 end
@@ -107,8 +140,8 @@ end
 
 function step_agent_stay!(agent, world)
 	costs_stay!(agent)
-	explore!(agent)
-	mingle!(agent)
+	explore!(agent, world)
+	mingle!(agent, agent_location(agent, world))
 end
 
 
@@ -119,7 +152,7 @@ function explore!(agent, world)
 	# knowledge
 	k = knows_here(agent)
 	# location
-	l = find_location(world, agent.loc.x, agent.loc.y)
+	l = agent_location(agent, world)
 
 	# gain local experience
 	k.experience += (1.0 - k.experience) * (1.0 - l.opaqueness)
@@ -127,8 +160,8 @@ function explore!(agent, world)
 	# gain information on local properties
 	for p in eachindex(k.values)
 		# stochasticity?
-		k.values[i] += (l.properties[i] - k.values[i]) * k.experience
-		k.trust[i] += (1.0 - k.trust[i]) * k.experience
+		k.values[p] += (l.properties[p] - k.values[p]) * k.experience
+		k.trust[p] += (1.0 - k.trust[p]) * k.experience
 	end
 end
 
@@ -170,7 +203,7 @@ function exchange_info!(a1, a2)
 		# *** both know the location
 
 		# TODO full transfer?
-		@set_to_max(k.experience, k.other_experience)
+		@set_to_max!(k.experience, k.other_experience)
 
 		# both have knowledge at l, compare by trust and transfer accordingly
 		for i in eachindex(k.values)
@@ -216,8 +249,8 @@ end
 # TODO initial knowledge
 function handle_departures!(model::Model)
 	for i in 1:100
-		x = 0
-		y = rand(1:size(model.world.area)[1])
+		x = 1
+		y = rand(1:size(model.world.area)[2])
 		a = Agent(Pos(x, y), 100.0)
 		l = find_location(model.world, x, y)
 		add_agent!(l, a)

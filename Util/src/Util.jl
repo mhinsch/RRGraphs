@@ -1,6 +1,6 @@
 module Util
 
-export drop!
+export drop!, drop_at!, @set_to_max!
 
 function drop!(cont, elem)
 	for i in eachindex(cont)
@@ -21,7 +21,8 @@ function drop_at!(cont, i)
 end
 
 
-@macro set_to_max!(a, b)
+macro set_to_max!(a, b)
 	esc(:(a > b ? (b = a) : (a=b)))
 end
 
+end

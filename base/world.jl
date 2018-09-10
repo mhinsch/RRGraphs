@@ -3,7 +3,8 @@ using Util
 
 # simple grid coords for now
 struct Pos
-	x, y :: Int
+	x :: Int
+	y :: Int
 end
 
 # a piece of knowledge an agent has about a location
@@ -20,7 +21,7 @@ mutable struct Knowledge
 end
 
 
-const Unknown = Knowledge(Pos(0, 0), [0.0], [0.0])
+const Unknown = Knowledge(Pos(0, 0), [0.0], [0.0], 0.0)
 
 
 # migrants
@@ -37,7 +38,7 @@ mutable struct Agent
 end
 
 
-Agent(l :: Pos, c :: Float64) = Agent(l, Vector{Knowledge}(0), c, Vector{Agent}(0))
+Agent(l :: Pos, c :: Float64) = Agent(l, Knowledge[], c, Agent[])
 
 
 function add_to_contacts!(agent, a)
@@ -70,7 +71,7 @@ learn!(agent, k) = push!(agent.knowledge, k)
 
 
 # one grid point for now (could be node on a graph)
-struct Location
+mutable struct Location
 	# friction, control, information, resource_1, resource_2, ..., resource_n
 	properties :: Vector{Float64}
 	# how difficult it is to access resources
@@ -81,25 +82,28 @@ end
 
 
 # helper to access properties by name
-prop(n::Symbol) = n == :friction ? 0 : (n == :control ? 1 : (n == :information ? 2 : -1))
+prop(n::Symbol) = n == :friction ? 1 : (n == :control ? 2 : (n == :information ? 3 : 0))
 
 # named properties
-get_p(l :: Location, p :: Symbol) = l.property[prop(n)]
-set_p!(l :: Location, p :: Symbol, v :: Float64) = l.property[prop(n) = v]
+get_p(l :: Location, p :: Symbol) = l.properties[prop(p)]
+set_p!(l :: Location, p :: Symbol, v :: Float64) = l.properties[prop(p)] = v
 # resources
-get_r(l :: Location, r :: Int) = l.property[i+3]
-set_r!(l :: Location, r :: Int, v :: Float64) = l.property[i+3] = v
+get_r(l :: Location, r :: Int) = l.properties[i+3]
+set_r!(l :: Location, r :: Int, v :: Float64) = l.properties[i+3] = v
 
 
 # construct empty location
-function Location()
-	Location(Vector{Float64}(10), 0, Vector{Agent}())
-end
+Location() = Location(fill(0.0, 3), 0, Vector{Agent}(undef, 0))
+
+Location(n) = Location(fill(0.0, n), 0, Vector{Agent}(undef, 0))
 
 
 mutable struct World
 	area :: Matrix{Location}
 end
+
+
+World(x::Int, y::Int) = World(Matrix{Location}(x, y))
 
 
 remove_agent!(loc::Location, agent::Agent) = drop!(loc.people, agent)
@@ -109,6 +113,9 @@ add_agent!(loc::Location, agent::Agent) = push!(loc.people, agent)
 
 
 find_location(world, x, y) = world.area[x, y]
+
+
+agent_location(agent, world) = find_location(world, agent.loc.x, agent.loc.y)
 
 
 function remove_agent!(world, agent)

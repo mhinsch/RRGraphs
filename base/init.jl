@@ -5,10 +5,10 @@ function setup_location!(loc, terrain)
 	set_p!(loc, :friction, (terrain + 100.0)/200.0)
 end
 
-function create_landscape(xsize, ysize)
-	world = World(Matrix{Location}(xsize, ysize))
+function create_landscape(xsize, ysize, nres)
+	world = World([Location(nres) for x=1:xsize, y=1:ysize])
 
-	data = Matrix{Float64}(xsize, ysize)
+	data = fill(0.0, xsize, ysize)
 	myrng(r1, r2) = rand() * (r2 - r1) + r1
 	diamond_square(data, myrng, wrap=false)
 
@@ -22,16 +22,16 @@ end
 
 # arbitrary values for now
 function setup_city!(loc)
-	set_p(loc, :friction, 0.2)
-	set_p(loc, :control, 0.8)
-	set_p(loc, :information, 0.8)
+	set_p!(loc, :friction, 0.2)
+	set_p!(loc, :control, 0.8)
+	set_p!(loc, :information, 0.8)
 end
 
 
 function add_cities!(xsize, ysize, ncities, thresh, nres, world)
 	nodes, links = create_random_geo_graph(ncities, thresh)
 	# rescale to map size
-	nodes = map(x -> (x[1]*xsize, x[2]*ysize), nodes)
+	nodes = map(x -> (floor(Int, x[1]*(xsize-1) + 1), floor(Int, x[2]*(ysize-1)+1)), nodes)
 
 	# cities
 	for (x, y) in nodes
@@ -43,7 +43,7 @@ end
 
 
 function create_world(xsize, ysize, ncities, thresh, nres)
-	world = create_landscape(xsize, ysize)
+	world = create_landscape(xsize, ysize, nres)
 	add_cities!(xsize, ysize, ncities, thresh, nres, world)
 
 	world
