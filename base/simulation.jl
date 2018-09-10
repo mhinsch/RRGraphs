@@ -91,6 +91,12 @@ function step_agent!(agent :: Agent, model::Model)
 end
 
 
+# TODO put some real logic here
+function decide_stay
+	rand() > 0.5
+end
+
+
 function step_agent_move!(agent, world)
 	loc_old = agent.loc
 	loc = decide_move(agent)
@@ -146,9 +152,9 @@ function mingle!(agent, location)
 end
 
 
+# TODO imperfect exchange (e.g. skip random knowledge pieces)
+# TODO exchange dependent on trust into source
 function exchange_info!(a1, a2)
-	# TODO imperfect exchange (e.g. skip random knowledge pieces)
-
 	for k in a1.knowledge
 		l = k.loc
 		k_other = knows_at(a2, l.x, l.y)
@@ -215,10 +221,16 @@ function handle_departures!(model::World)
 end
 
 
-# TODO remove arrived agents
-# - all agents at target get removed from world
-# - *but* remain in network!
+# all agents at target get removed from world (but remain in network)
 function handle_arrivals!(model::World)
+	# go backwards, so that removal doesn't mess up the index
+	for i in length(model.migrants):1
+		# TODO check if coord is correct
+		if model.migrants[i].loc.y >= length(model.world.area)[1]
+			drop_at!(model.migrants, i)
+			remove_agent!(world, agent)
+		end
+	end
 end
 
 

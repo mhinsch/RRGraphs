@@ -108,9 +108,14 @@ add_agent!(loc::Location, agent::Agent) = push!(loc.people, agent)
 find_location(world, x, y) = world.area[x, y]
 
 
+function remove_agent!(world, agent)
+	pos = agent.loc
+	remove_agent!(world.area[pos.x, pos.y], agent)
+end
+
+
 function move!(world, agent, x, y)
-	pos_old = agent.loc
-	remove_agent!(world.area[pos_old.x, pos_old.y], agent)
+	remove_agent!(world, agent)
 	loc = find_location(world, x, y)
 	agent.loc = loc
 	add_agent!(loc, agent)

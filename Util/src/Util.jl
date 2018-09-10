@@ -2,16 +2,20 @@ module Util
 
 export drop!
 
-function drop!(cont::C, elem::E) where C, E
+function drop!(cont, elem)
 	for i in eachindex(cont)
 		if cont[i] == elem
-			cont[i] = cont[end]
-			pop!(cont)
+			drop_at!(cont, i)
 			return i
 		end
 	end
 
+	# TODO convert into index type
 	return 0
 end
 
+
+function drop_at!(cont, i)
+	cont[i] = cont[end]
+	pop!(cont)
 end
