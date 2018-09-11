@@ -15,7 +15,7 @@ end
 # - plans (?)
 # - transport (?)
 function quality(k :: Knowledge)
-	rand()
+	k.loc == Pos(0, 0) ? rand() * 0.1 : rand()
 end
 
 function valid_location(l :: Pos, world :: World)
@@ -31,32 +31,32 @@ end
 function decide_move(agent :: Agent, world::World)
 	loc = agent.loc
 	# von Neumann neighbourhood
-	candidates = Knowledge[]
+	candidates = Tuple{Knowledge, Pos}[]
 	if loc.x > 1 
-		push!(candidates, knows_at(agent, loc.x-1, loc.y))
-		if loc.y < size(world.area)[1]
-			push!(candidates, knows_at(agent, loc.x+1, loc.y))
-		end
+		push!(candidates, (knows_at(agent, loc.x-1, loc.y), Pos(loc.x-1, loc.y)))
+	end
+	if loc.x < size(world.area)[1]
+		push!(candidates, (knows_at(agent, loc.x+1, loc.y), Pos(loc.x+1, loc.y)))
 	end
 
 	if loc.y > 1 
-		push!(candidates, knows_at(agent, loc.x, loc.y-1))
-		if loc.y < size(world.area)[2]
-			push!(candidates, knows_at(agent, loc.x, loc.y+1))
-		end
+		push!(candidates, (knows_at(agent, loc.x, loc.y-1), Pos(loc.x, loc.y-1)))
+	end
+	if loc.y < size(world.area)[2]
+		push!(candidates, (knows_at(agent, loc.x, loc.y+1), Pos(loc.x, loc.y+1)))
 	end
 	
-	println("$(size(candidates)) locs")
+	#println("$(size(candidates)) locs")
 
 	# find best neighbour
 	best = 0.0
 	l = 0
 	for c in eachindex(candidates)
-		println("c: $c")
-		q = quality(candidates[c])
-		println("q: $q")
+	#	println("c: $c")
+		q = quality(candidates[c][1])
+	#	println("q: $q")
 		if q > best
-			println(">")
+	#		println(">")
 			best = q
 			l = c
 		end
@@ -64,8 +64,8 @@ function decide_move(agent :: Agent, world::World)
 
 	# if there's a best neighbour, go there
 	if l > 0
-		println("l: $(candidates[l].loc)")
-		return candidates[l].loc
+	#	println("l: $(candidates[l][2])")
+		return candidates[l][2]
 	else
 		return Pos(0, 0)
 	end

@@ -126,8 +126,8 @@ end
 
 function move!(world, agent, x, y)
 	remove_agent!(world, agent)
+	agent.loc = Pos(x, y)
 	loc = find_location(world, x, y)
-	agent.loc = loc
 	add_agent!(loc, agent)
 end
 
