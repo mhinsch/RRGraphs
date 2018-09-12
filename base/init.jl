@@ -2,7 +2,7 @@ using GeoGraph
 using DiamondSquare
 
 function setup_location!(loc, terrain)
-	set_p!(loc, :friction, (terrain + 100.0)/200.0)
+	set_p!(loc, :friction, terrain)
 end
 
 function create_landscape(xsize, ysize, nres)
@@ -11,6 +11,10 @@ function create_landscape(xsize, ysize, nres)
 	data = fill(0.0, xsize, ysize)
 	myrng(r1, r2) = rand() * (r2 - r1) + r1
 	diamond_square(data, myrng, wrap=false)
+
+	mima = extrema(data)
+
+	data .= (data .- mima[1]) ./ (mima[2]-mima[1])
 
 	for x in 1:xsize, y in 1:ysize
 		setup_location!(world.area[x, y], data[x, y])
@@ -38,7 +42,7 @@ function add_cities!(xsize, ysize, ncities, thresh, nres, world)
 		setup_city!(world.area[x, y])
 	end
 
-	# set low friction at links
+	# TODO set low friction at links
 end
 
 

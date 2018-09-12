@@ -132,7 +132,7 @@ function step_agent_move!(agent, world)
 		return
 	end
 
-	println("moving to $(loc.x), $(loc.y)")
+	#println("moving to $(loc.x), $(loc.y)")
 	costs_move!(agent, loc)
 	move!(world, agent, loc.x, loc.y)
 end
