@@ -15,7 +15,7 @@ end
 # - plans (?)
 # - transport (?)
 function quality(k :: Knowledge)
-	k.loc == Pos(0, 0) ? rand() * 0.1 : rand()
+	k.loc == Pos(0, 0) ? rand() * 0.1 : rand()*0.5 + k.loc.x/2000
 end
 
 function valid_location(l :: Pos, world :: World)

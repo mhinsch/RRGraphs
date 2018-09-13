@@ -16,9 +16,7 @@ function create_landscape(xsize, ysize, nres)
 
 	data .= (data .- mima[1]) ./ (mima[2]-mima[1])
 
-	for x in 1:xsize, y in 1:ysize
-		setup_location!(world.area[x, y], data[x, y])
-	end
+	setup_location!.(world.area, data)
 
 	world
 end
