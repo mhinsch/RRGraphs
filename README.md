@@ -8,6 +8,8 @@ simulate migration route dynamics dependent on spread of information
 
 ## Running the simulation
 
+In the package directory:
+
 ### GUI
 
 ```
