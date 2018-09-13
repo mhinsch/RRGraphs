@@ -1,5 +1,6 @@
 using GeoGraph
 using DiamondSquare
+using Util
 
 function setup_location!(loc, terrain)
 	set_p!(loc, :friction, terrain)
@@ -22,6 +23,7 @@ function create_landscape(xsize, ysize, nres)
 end
 
 
+# TODO parameterize
 # arbitrary values for now
 function setup_city!(loc)
 	set_p!(loc, :friction, 0.2)
@@ -30,17 +32,28 @@ function setup_city!(loc)
 end
 
 
+# TODO parameterize
+function setup_link!(loc)
+	set_p!(loc, :friction, 0.1)
+	set_p!(loc, :control, 0.5)
+end
+
+
 function add_cities!(xsize, ysize, ncities, thresh, nres, world)
-	nodes, links = create_random_geo_graph(ncities, thresh)
+	nodes, world.links = create_random_geo_graph(ncities, thresh)
 	# rescale to map size
-	nodes = map(x -> (floor(Int, x[1]*(xsize-1) + 1), floor(Int, x[2]*(ysize-1)+1)), nodes)
+	world.cities = map(x -> (floor(Int, x[1]*(xsize-1) + 1), floor(Int, x[2]*(ysize-1)+1)), nodes)
 
 	# cities
-	for (x, y) in nodes
+	for (x, y) in world.cities
 		setup_city!(world.area[x, y])
 	end
 
-	# TODO set low friction at links
+	for (i, j) in world.links
+		bresenham(world.cities[i]..., world.cities[j]...) do x, y
+			setup_link!(world.area[x, y])
+		end
+	end
 end
 
 
