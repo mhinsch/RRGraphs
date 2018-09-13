@@ -6,6 +6,7 @@ function setup_location!(loc, terrain)
 	set_p!(loc, :friction, terrain)
 end
 
+# TODO parameterize
 function create_landscape(xsize, ysize, nres)
 	world = World([Location(nres) for x=1:xsize, y=1:ysize])
 
@@ -18,6 +19,10 @@ function create_landscape(xsize, ysize, nres)
 	data .= (data .- mima[1]) ./ (mima[2]-mima[1])
 
 	setup_location!.(world.area, data)
+
+	for i in 1:5
+		push!(world.entries, floor(Int, rand()*ysize/2 + ysize/4))
+	end
 
 	world
 end

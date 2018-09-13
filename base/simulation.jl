@@ -229,7 +229,8 @@ end
 function handle_departures!(model::Model)
 	for i in 1:100
 		x = 1
-		y = rand(1:size(model.world.area)[2])
+		entry = rand(1:length(model.world.entries))
+		y = model.world.entries[entry] + rand(-5:5)
 		a = Agent(Pos(x, y), 100.0)
 		l = find_location(model.world, x, y)
 		add_agent!(l, a)

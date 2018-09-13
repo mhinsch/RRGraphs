@@ -102,11 +102,12 @@ mutable struct World
 	area :: Matrix{Location}
 	cities :: Vector{Tuple{Int, Int}}
 	links :: Vector{Tuple{Int, Int}}
+	entries :: Vector{Int}
 end
 
-World(x::Int, y::Int) = World(Matrix{Location}(x, y), Tuple{Int, Int}[], Tuple{Int, Int}[])
+World(x::Int, y::Int) = World(Matrix{Location}(x, y), [], [], [])
 
-World(a::Matrix{Location}) = World(a, Tuple{Int, Int}[], Tuple{Int, Int}[])
+World(a::Matrix{Location}) = World(a, [], [], [])
 
 
 remove_agent!(loc::Location, agent::Agent) = drop!(loc.people, agent)
