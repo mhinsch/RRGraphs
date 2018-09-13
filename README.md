@@ -4,7 +4,8 @@ simulate migration route dynamics dependent on spread of information
 ## Requirements
 
 * Julia >= 0.7
-* SimpleDirectMediaLayer Julia package
+* SimpleDirectMediaLayer.jl 
+* Parameters.jl
 
 ## Running the simulation
 
