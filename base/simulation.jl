@@ -18,11 +18,6 @@ function quality(k :: Knowledge)
 	k.loc == Pos(0, 0) ? rand() * 0.1 : rand()*0.5 + k.loc.x/2000
 end
 
-function valid_location(l :: Pos, world :: World)
-	l.x > 0 && l.x <= size(world.area)[1] &&
-		l.y > 0 && l.y <= size(world.area)[2]
-end
-
 
 # currently very simplistically selects the von Neumann neighbour with the
 # highest quality
@@ -30,42 +25,26 @@ end
 # TODO include plans?
 function decide_move(agent :: Agent, world::World)
 	loc = agent.loc
-	# von Neumann neighbourhood
+	# Moore neighbourhood
 	candidates = Tuple{Knowledge, Pos}[]
-	if loc.x > 1 
-		push!(candidates, (knows_at(agent, loc.x-1, loc.y), Pos(loc.x-1, loc.y)))
-	end
-	if loc.x < size(world.area)[1]
-		push!(candidates, (knows_at(agent, loc.x+1, loc.y), Pos(loc.x+1, loc.y)))
-	end
+	x1 = max(loc.x-1, 1)
+	x2 = min(loc.x+1, size(world.area)[1])
+	y1 = max(loc.y-1, 1)
+	y2 = min(loc.y+1, size(world.area)[2])
 
-	if loc.y > 1 
-		push!(candidates, (knows_at(agent, loc.x, loc.y-1), Pos(loc.x, loc.y-1)))
-	end
-	if loc.y < size(world.area)[2]
-		push!(candidates, (knows_at(agent, loc.x, loc.y+1), Pos(loc.x, loc.y+1)))
-	end
-	
-	#println("$(size(candidates)) locs")
-
-	# find best neighbour
-	best = 0.0
-	l = 0
-	for c in eachindex(candidates)
-	#	println("c: $c")
-		q = quality(candidates[c][1])
-	#	println("q: $q")
-		if q > best
-	#		println(">")
-			best = q
-			l = c
+	bestx, besty = 0, 0
+	bestq = 0.0
+	for x in x1:x2, y in y1:y2
+		q = quality(knows_at(agent, x, y))
+		if q > bestq
+			bestq = q
+			bestx, besty = x, y
 		end
 	end
 
 	# if there's a best neighbour, go there
-	if l > 0
-	#	println("l: $(candidates[l][2])")
-		return candidates[l][2]
+	if bestx > 0
+		return Pos(bestx, besty)
 	else
 		return Pos(0, 0)
 	end
