@@ -1,11 +1,15 @@
+# this package provides some nice convenience syntax 
+# for parameters
 using Parameters
 
-# provides nice syntax
 @with_kw struct Params
+	# the macro will move the default values into the constructor
 	rand_seed		:: Int		= 123
 
 	xsize 			:: Int 		= 1025
 	ysize 			:: Int 		= 1025
+	n_cities		:: Int		= 100
+	link_thresh		:: Float64	= 0.2
 
 	n_start_pos 	:: Int 		= 5
 	n_dep_per_step 	:: Int 		= 100

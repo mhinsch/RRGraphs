@@ -14,7 +14,7 @@ end
 # - location (i.e. closer to target)
 # - plans (?)
 # - transport (?)
-function quality(k :: Knowledge)
+function quality(k :: Knowledge, par)
 	k.loc == Pos(0, 0) ? rand() * 0.1 : rand()*0.5 + k.loc.x/2000
 end
 
@@ -23,7 +23,7 @@ end
 # highest quality
 # TODO include transport?
 # TODO include plans?
-function decide_move(agent :: Agent, world::World)
+function decide_move(agent :: Agent, world::World, par)
 	loc = agent.loc
 	# Moore neighbourhood
 	candidates = Tuple{Knowledge, Pos}[]
@@ -35,7 +35,7 @@ function decide_move(agent :: Agent, world::World)
 	bestx, besty = 0, 0
 	bestq = 0.0
 	for x in x1:x2, y in y1:y2
-		q = quality(knows_at(agent, x, y))
+		q = quality(knows_at(agent, x, y), par)
 		if q > bestq
 			bestq = q
 			bestx, besty = x, y
@@ -51,27 +51,27 @@ function decide_move(agent :: Agent, world::World)
 end
 
 
-function simulate!(model :: Model, steps)
+function simulate!(model :: Model, steps, par)
 	for i in 1:steps
-		step_simulation!(model)
+		step_simulation!(model, par)
 	end
 end
 
 
-function step_simulation!(model::Model)
-	handle_departures!(model)
+function step_simulation!(model::Model, par)
+	handle_departures!(model, par)
 
 	for a in model.migrants
-		step_agent!(a, model)
+		step_agent!(a, model, par)
 	end
 
-	handle_arrivals!(model)
+	handle_arrivals!(model, par)
 
-	spread_information!(model)
+	spread_information!(model, par)
 end
 
 
-function spread_information!(model::Model)
+function spread_information!(model::Model, par)
 	# needed?
 end
 
@@ -79,55 +79,55 @@ end
 # *** agent simulation
 
 
-function costs_stay!(a)
+function costs_stay!(a, par)
 end
 
 
-function costs_move!(a, pos)
+function costs_move!(a, pos, par)
 end
 
 
-function step_agent!(agent :: Agent, model::Model)
-	if decide_stay(agent)
-		step_agent_stay!(agent, model.world)
+function step_agent!(agent :: Agent, model::Model, par)
+	if decide_stay(agent, par)
+		step_agent_stay!(agent, model.world, par)
 	else
-		step_agent_move!(agent, model.world)
+		step_agent_move!(agent, model.world, par)
 	end
 
-	step_agent_info!(agent, model)
+	step_agent_info!(agent, model, par)
 end
 
 
 # TODO put some real logic here
-function decide_stay(a)
+function decide_stay(a, par)
 	return rand() > 0.5
 end
 
 
-function step_agent_move!(agent, world)
+function step_agent_move!(agent, world, par)
 	loc_old = agent.loc
-	loc = decide_move(agent, world)
+	loc = decide_move(agent, world, par)
 	if loc == Pos(0, 0)
 		return
 	end
 
 	#println("moving to $(loc.x), $(loc.y)")
-	costs_move!(agent, loc)
+	costs_move!(agent, loc, par)
 	move!(world, agent, loc.x, loc.y)
 end
 
 
-function step_agent_stay!(agent, world)
-	costs_stay!(agent)
-	explore!(agent, world)
-	mingle!(agent, agent_location(agent, world))
+function step_agent_stay!(agent, world, par)
+	costs_stay!(agent, par)
+	explore!(agent, world, par)
+	mingle!(agent, agent_location(agent, world), par)
 end
 
 
 # arbitrary, very simplistic implementation
 # TODO discuss with group
 # TODO parameterize
-function explore!(agent, world)
+function explore!(agent, world, par)
 	# knowledge
 	k = knows_here(agent)
 	# location
@@ -147,26 +147,26 @@ end
 
 # TODO parameterize
 # meet other agents, gain contacts and information
-function mingle!(agent, location)
+function mingle!(agent, location, par)
 	for a in location.people
 		if a == agent
 			continue
 		end
 
 		# agents keep in contact
-		if rand() < 0.3	# arbitrary number
+		if rand() < par.p_keep_contact
 			add_to_contacts!(agent, a)
 			add_to_contacts!(a, agent)
 		end
 		
-		exchange_info!(agent, a)
+		exchange_info!(agent, a, par)
 	end
 end
 
 
 # TODO imperfect exchange (e.g. skip random knowledge pieces)
 # TODO exchange dependent on trust into source
-function exchange_info!(a1, a2)
+function exchange_info!(a1, a2, par)
 	for k in a1.knowledge
 		l = k.loc
 		k_other = knows_at(a2, l.x, l.y)
@@ -215,7 +215,7 @@ end
 # TODO spread info to other agent/public
 # - social network
 # - public information
-function step_agent_info!(agent, model)
+function step_agent_info!(agent, model, par)
 end
 
 
@@ -223,15 +223,14 @@ end
 
 
 # TODO fixed rate over time?
-# TODO parameterize
 # TODO initial contacts
 # TODO initial knowledge
-function handle_departures!(model::Model)
-	for i in 1:100
+function handle_departures!(model::Model, par)
+	for i in 1:par.n_dep_per_step
 		x = 1
 		entry = rand(1:length(model.world.entries))
 		y = model.world.entries[entry] + rand(-5:5)
-		a = Agent(Pos(x, y), 100.0)
+		a = Agent(Pos(x, y), par.ini_capital)
 		l = find_location(model.world, x, y)
 		add_agent!(l, a)
 		push!(model.people, a)
@@ -241,7 +240,7 @@ end
 
 
 # all agents at target get removed from world (but remain in network)
-function handle_arrivals!(model::Model)
+function handle_arrivals!(model::Model, par)
 	# go backwards, so that removal doesn't mess up the index
 	for i in length(model.migrants):1
 		if model.migrants[i].loc.x >= size(model.world.area)[1]

@@ -6,65 +6,62 @@ function setup_location!(loc, terrain)
 	set_p!(loc, :friction, terrain)
 end
 
-# TODO parameterize
-function create_landscape(xsize, ysize, nres)
-	world = World([Location(nres) for x=1:xsize, y=1:ysize])
+function create_landscape(par)
+	world = World([Location(par.n_resources) for x=1:par.xsize, y=1:par.ysize])
 
-	data = fill(0.0, xsize, ysize)
+	data = fill(0.0, par.xsize, par.ysize)
 	myrng(r1, r2) = rand() * (r2 - r1) + r1
 	diamond_square(data, myrng, wrap=false)
 
 	mima = extrema(data)
 
-	data .= (data .- mima[1]) ./ (mima[2]-mima[1])
+	data .= (data .- mima[1]) ./ (mima[2]-mima[1]) .* par.frict_map_range
 
 	setup_location!.(world.area, data)
 
-	for i in 1:5
-		push!(world.entries, floor(Int, rand()*ysize/2 + ysize/4))
+	for i in 1:par.n_start_pos
+		push!(world.entries, floor(Int, rand()*par.ysize/2 + par.ysize/4))
 	end
 
 	world
 end
 
 
-# TODO parameterize
-# arbitrary values for now
-function setup_city!(loc)
-	set_p!(loc, :friction, 0.2)
-	set_p!(loc, :control, 0.8)
-	set_p!(loc, :information, 0.8)
+function setup_city!(loc, par)
+	set_p!(loc, :friction, par.frict_city)
+	set_p!(loc, :control, par.control_city)
+	set_p!(loc, :information, par.inf_city)
 end
 
 
-# TODO parameterize
-function setup_link!(loc)
-	set_p!(loc, :friction, 0.1)
-	set_p!(loc, :control, 0.5)
+function setup_link!(loc, par)
+	set_p!(loc, :friction, par.frict_link)
+	set_p!(loc, :control, par.control_link)
 end
 
 
-function add_cities!(xsize, ysize, ncities, thresh, nres, world)
-	nodes, world.links = create_random_geo_graph(ncities, thresh)
+function add_cities!(world, par)
+	nodes, world.links = create_random_geo_graph(par.n_cities, par.link_thresh)
 	# rescale to map size
-	world.cities = map(x -> (floor(Int, x[1]*(xsize-1) + 1), floor(Int, x[2]*(ysize-1)+1)), nodes)
+	world.cities = 
+		map(x -> (floor(Int, x[1]*(par.xsize-1) + 1), floor(Int, x[2]*(par.ysize-1)+1)), nodes)
 
 	# cities
 	for (x, y) in world.cities
-		setup_city!(world.area[x, y])
+		setup_city!(world.area[x, y], par)
 	end
 
 	for (i, j) in world.links
 		bresenham(world.cities[i]..., world.cities[j]...) do x, y
-			setup_link!(world.area[x, y])
+			setup_link!(world.area[x, y], par)
 		end
 	end
 end
 
 
-function create_world(xsize, ysize, ncities, thresh, nres)
-	world = create_landscape(xsize, ysize, nres)
-	add_cities!(xsize, ysize, ncities, thresh, nres, world)
+function create_world(par)
+	world = create_landscape(par)
+	add_cities!(world, par)
 
 	world
 end

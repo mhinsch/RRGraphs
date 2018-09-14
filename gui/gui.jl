@@ -32,8 +32,12 @@ include("../base/world.jl")
 include("../base/init.jl")
 include("../base/simulation.jl")
 include("../base/draw.jl")
+include("../base/params.jl")
 
-world = create_world(wsize, wsize, 100, 0.2, 10)
+# const for performance reasons
+const parameters = Params(xsize = wsize, ysize = wsize)
+
+world = create_world(parameters)
 model = Model(world, Agent[], Agent[])
 
 # int(n :: Float64) = floor(Int, n)
@@ -50,7 +54,7 @@ while(true)
 		break;
 	end
 
-	step_simulation!(model)
+	step_simulation!(model, parameters)
 	draw!(pixels, model)
 
 	SDL2.UpdateTexture(texture, C_NULL, pixels, Int32(wsize * 4))
