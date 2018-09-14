@@ -24,7 +24,9 @@ julia gui/gui.jl
 > include("base/world.jl")
 > include("base/init.jl")
 > include("base/simulation.jl")
-> world = create_world(1025, 1025, 100, 0.2, 10)
+> include("base/params.jl")
+> const pars = Params() # use default values
+> world = create_world(pars)
 > model = Model(world, Agent[], Agent[])
-> step_simulation!(world)
+> step_simulation!(world, pars)
 ```
