@@ -95,7 +95,7 @@ set_r!(l :: Location, r :: Int, v :: Float64) = l.properties[i+3] = v
 # construct empty location
 Location() = Location(fill(0.0, 3), 0, Vector{Agent}(undef, 0))
 
-Location(n) = Location(fill(0.0, n), 0, Vector{Agent}(undef, 0))
+Location(n) = Location(fill(0.0, n+3), 0, Vector{Agent}(undef, 0))
 
 
 mutable struct World

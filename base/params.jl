@@ -24,10 +24,14 @@ using Parameters
 	weight_friction	:: Float64	= 0.3
 	weight_control	:: Float64	= 0.8
 	weight_info		:: Float64	= 0.3
+	weight_resources:: Float64	= 0.5
 
 	n_resources 	:: Int 		= 7
 
-	ini_capital 	:: Float64 	= 100.0
+	ini_capital 	:: Float64 	= 500.0
+	costs_stay		:: Float64	= 1.0
+	ben_resources	:: Float64	= 5.0
+	costs_move		:: Float64	= 5.0
 
 	p_keep_contact 	:: Float64 	= 0.3
 

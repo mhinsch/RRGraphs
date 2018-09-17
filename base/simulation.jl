@@ -14,12 +14,13 @@ end
 # - plans (?)
 # - transport (?)
 # - local experience (?)
-function quality(k :: Knowledge, par)
+function quality(x, y, k :: Knowledge, par)
+	v = x/2000
+
 	if (k.loc == Pos(0, 0))
-		return rand() * 0.1
+		return v + rand() * 0.1
 	end
 
-	v = k.loc.x/2000
 	v += (1.0 - k.values[1]) * par.weight_friction
 	v += (1.0 - k.values[2]) * par.weight_control
 	v += k.values[3] * par.weight_info
@@ -39,7 +40,6 @@ end
 function decide_move(agent :: Agent, world::World, par)
 	loc = agent.loc
 	# Moore neighbourhood
-	candidates = Tuple{Knowledge, Pos}[]
 	x1 = max(loc.x-1, 1)
 	x2 = min(loc.x+1, size(world.area)[1])
 	y1 = max(loc.y-1, 1)
@@ -48,7 +48,7 @@ function decide_move(agent :: Agent, world::World, par)
 	bestx, besty = 0, 0
 	bestq = 0.0
 	for x in x1:x2, y in y1:y2
-		q = quality(knows_at(agent, x, y), par)
+		q = quality(x, y, knows_at(agent, x, y), par)
 		if q > bestq
 			bestq = q
 			bestx, besty = x, y
@@ -92,16 +92,23 @@ end
 # *** agent simulation
 
 
-function costs_stay!(a, par)
+# TODO opaqueness/experience
+function costs_stay!(a, loc, par)
+	a.capital -= par.costs_stay
+	for i in 4:length(loc.properties)
+		a.capital += par.ben_resources * loc.properties[i] / i
+	end
 end
 
 
-function costs_move!(a, pos, par)
+# TODO control
+function costs_move!(a, loc, par)
+	a.capital -= par.costs_move * get_p(loc, :friction)
 end
 
 
 function step_agent!(agent :: Agent, model::Model, par)
-	if decide_stay(agent, par)
+	if agent.capital < 0.0 || decide_stay(agent, par)
 		step_agent_stay!(agent, model.world, par)
 	else
 		step_agent_move!(agent, model.world, par)
@@ -118,20 +125,19 @@ end
 
 
 function step_agent_move!(agent, world, par)
-	loc_old = agent.loc
 	loc = decide_move(agent, world, par)
 	if loc == Pos(0, 0)
 		return
 	end
 
 	#println("moving to $(loc.x), $(loc.y)")
-	costs_move!(agent, loc, par)
+	costs_move!(agent, find_location(world, loc.x, loc.y), par)
 	move!(world, agent, loc.x, loc.y)
 end
 
 
 function step_agent_stay!(agent, world, par)
-	costs_stay!(agent, par)
+	costs_stay!(agent, agent_location(agent, world), par)
 	explore!(agent, world, par)
 	mingle!(agent, agent_location(agent, world), par)
 end
@@ -143,6 +149,12 @@ end
 function explore!(agent, world, par)
 	# knowledge
 	k = knows_here(agent)
+	
+	if k == Unknown
+		k = Knowledge(agent.loc, fill(0.0, par.n_resources + 3), fill(0.0, par.n_resources+3), 0.0)
+		push!(agent.knowledge, k)
+	end
+
 	# location
 	l = agent_location(agent, world)
 
@@ -195,16 +207,16 @@ function exchange_info!(a1, a2, par)
 		# *** both know the location
 
 		# TODO full transfer?
-		@set_to_max!(k.experience, k.other_experience)
+		k.experience = k_other.experience = max(k.experience, k_other.experience)
 
 		# both have knowledge at l, compare by trust and transfer accordingly
 		for i in eachindex(k.values)
 			if k.trust[i] > k_other.trust[i]
-				k_other.value[i] = k.value[i]
-				k_other.trust[i] = k.value[i]
+				k_other.values[i] = k.values[i]
+				k_other.trust[i] = k.values[i]
 			else
-				k.value[i] = k_other.value[i]
-				k.trust[i] = k_other.value[i]
+				k.values[i] = k_other.values[i]
+				k.trust[i] = k_other.values[i]
 			end
 		end
 	end
