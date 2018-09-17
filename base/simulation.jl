@@ -11,11 +11,24 @@ end
 
 # TODO include
 # - effects of certainty vs. attractiveness
-# - location (i.e. closer to target)
 # - plans (?)
 # - transport (?)
+# - local experience (?)
 function quality(k :: Knowledge, par)
-	k.loc == Pos(0, 0) ? rand() * 0.1 : rand()*0.5 + k.loc.x/2000
+	if (k.loc == Pos(0, 0))
+		return rand() * 0.1
+	end
+
+	v = k.loc.x/2000
+	v += (1.0 - k.values[1]) * par.weight_friction
+	v += (1.0 - k.values[2]) * par.weight_control
+	v += k.values[3] * par.weight_info
+
+	for i in 4:length(k.values)
+		v += k.values[i] * par.weight_resources / i
+	end
+	
+	v
 end
 
 

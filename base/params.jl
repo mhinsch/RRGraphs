@@ -12,7 +12,7 @@ using Parameters
 	link_thresh		:: Float64	= 0.2
 
 	n_start_pos 	:: Int 		= 5
-	n_dep_per_step 	:: Int 		= 100
+	n_dep_per_step 	:: Int 		= 10
 
 	frict_city 		:: Float64 	= 0.2
 	frict_link 		:: Float64 	= 0.1
@@ -20,6 +20,10 @@ using Parameters
 	control_city 	:: Float64 	= 0.8
 	control_link 	:: Float64 	= 0.5
 	inf_city 		:: Float64 	= 0.8
+
+	weight_friction	:: Float64	= 0.3
+	weight_control	:: Float64	= 0.8
+	weight_info		:: Float64	= 0.3
 
 	n_resources 	:: Int 		= 7
 
