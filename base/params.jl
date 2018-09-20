@@ -28,12 +28,16 @@ using Parameters
 
 	n_resources 	:: Int 		= 7
 
+	n_ini_contacts	:: Int		= 10
 	ini_capital 	:: Float64 	= 500.0
 	costs_stay		:: Float64	= 1.0
 	ben_resources	:: Float64	= 5.0
 	costs_move		:: Float64	= 5.0
 
 	p_keep_contact 	:: Float64 	= 0.3
+	p_info_mingle	:: Float64	= 0.3
+	p_info_contacts	:: Float64	= 0.2
+	p_transfer_info	:: Float64	= 0.3
 
 end
 

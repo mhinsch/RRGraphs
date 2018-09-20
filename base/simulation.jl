@@ -14,11 +14,10 @@ end
 # - plans (?)
 # - transport (?)
 # - local experience (?)
-function quality(x, y, k :: Knowledge, par)
-	v = x/2000
-
+function quality(x, y, dx, k :: Knowledge, par)
+	v = 2.0 + dx
 	if (k.loc == Pos(0, 0))
-		return v + rand() * 0.1
+		return v + (rand() < 0.1 ? rand() : rand() * 0.1)
 	end
 
 	v += (1.0 - k.values[1]) * par.weight_friction
@@ -48,7 +47,7 @@ function decide_move(agent :: Agent, world::World, par)
 	bestx, besty = 0, 0
 	bestq = 0.0
 	for x in x1:x2, y in y1:y2
-		q = quality(x, y, knows_at(agent, x, y), par)
+		q = quality(x, y, x-loc.x, knows_at(agent, x, y), par)
 		if q > bestq
 			bestq = q
 			bestx, besty = x, y
@@ -74,9 +73,16 @@ end
 function step_simulation!(model::Model, par)
 	handle_departures!(model, par)
 
+	m = 0
+
 	for a in model.migrants
 		step_agent!(a, model, par)
+		m += length(a.knowledge)
 	end
+
+	m /= length(model.migrants)
+
+	println("avg. mem: ", m)
 
 	handle_arrivals!(model, par)
 
@@ -152,7 +158,7 @@ function explore!(agent, world, par)
 	
 	if k == Unknown
 		k = Knowledge(agent.loc, fill(0.0, par.n_resources + 3), fill(0.0, par.n_resources+3), 0.0)
-		push!(agent.knowledge, k)
+		learn!(agent, k)
 	end
 
 	# location
@@ -184,7 +190,9 @@ function mingle!(agent, location, par)
 			add_to_contacts!(a, agent)
 		end
 		
-		exchange_info!(agent, a, par)
+		if rand() < par.p_info_mingle
+			exchange_info!(agent, a, par)
+		end
 	end
 end
 
@@ -192,15 +200,17 @@ end
 # TODO imperfect exchange (e.g. skip random knowledge pieces)
 # TODO exchange dependent on trust into source
 function exchange_info!(a1, a2, par)
-	for k in a1.knowledge
+	for k in values(a1.knowledge)
+
 		l = k.loc
 		k_other = knows_at(a2, l.x, l.y)
 		
 		# *** only a1 knows the location
 
-		if k_other == Unknown
-			# TODO full transfer of experience?
-			learn!(a2, k)
+		if k_other == Unknown 
+			if rand() < par.p_transfer_info
+				learn!(a2, deepcopy(k))
+			end
 			continue
 		end
 
@@ -223,14 +233,15 @@ function exchange_info!(a1, a2, par)
 
 	# *** transfer for location a2 knows but a1 doesn't
 	
-	for k in a2.knowledge
+	for k in values(a2.knowledge)
 		l = k.loc
 		k_other = knows_at(a1, l.x, l.y)
 		
 		# other has no knowledge at this location, just add it
-		if k_other == Unknown
-			# TODO full transfer of experience?
-			learn!(a2, k)
+		if k_other == Unknown 
+			if rand() < par.p_transfer_info
+				learn!(a1, deepcopy(k))
+			end
 			continue
 		end
 	end
@@ -241,6 +252,12 @@ end
 # - social network
 # - public information
 function step_agent_info!(agent, model, par)
+	#println("c")
+	for c in agent.contacts
+		if rand() < par.p_info_contacts
+			exchange_info!(agent, c, par)
+		end
+	end
 end
 
 
@@ -248,7 +265,6 @@ end
 
 
 # TODO fixed rate over time?
-# TODO initial contacts
 # TODO initial knowledge
 function handle_departures!(model::Model, par)
 	for i in 1:par.n_dep_per_step
@@ -260,6 +276,14 @@ function handle_departures!(model::Model, par)
 		add_agent!(l, a)
 		push!(model.people, a)
 		push!(model.migrants, a)
+
+		# add initial contacts
+		# TODO remove duplicates
+		nc = min(length(model.people) ÷ 10, par.n_ini_contacts)
+		for c in 1:nc
+			push!(a.contacts, model.people[rand(1:length(model.people))])
+		end
+
 	end
 end
 

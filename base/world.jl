@@ -21,7 +21,7 @@ mutable struct Knowledge
 end
 
 
-const Unknown = Knowledge(Pos(0, 0), [0.0], [0.0], 0.0)
+const Unknown = Knowledge(Pos(0, 0), [], [], 0.0)
 
 
 # migrants
@@ -30,7 +30,8 @@ mutable struct Agent
 	loc :: Pos
 	# what it thinks it knows about the world
 	# TODO optimize data structure for access by location
-	knowledge :: Vector{Knowledge}
+	#knowledge :: Vector{Knowledge}
+	knowledge :: Dict{Tuple{Int, Int}, Knowledge}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
@@ -38,7 +39,7 @@ mutable struct Agent
 end
 
 
-Agent(l :: Pos, c :: Float64) = Agent(l, Knowledge[], c, Agent[])
+Agent(l :: Pos, c :: Float64) = Agent(l, Dict(), c, Agent[])
 
 
 function add_to_contacts!(agent, a)
@@ -62,12 +63,21 @@ function get_knowledge_at(knowledge :: Vector{Knowledge}, x, y)
 	return Unknown 
 end
 
+# this is very preliminary and should be optimized
+# TODO check if it's ok that this returns a reference
+function get_knowledge_at(knowledge :: Dict{Tuple{Int, Int}, Knowledge}, x, y)
+	get(knowledge, (x,y), Unknown)
+end
+
 
 knows_at(agent :: Agent, x, y) = get_knowledge_at(agent.knowledge, x, y)
 knows_here(agent :: Agent) = knows_at(agent, agent.loc.x, agent.loc.y)
 
 
-learn!(agent, k) = push!(agent.knowledge, k)
+add_to_knowledge!(k :: Vector{Knowledge}, item) = push!(k, item)
+	add_to_knowledge!(k :: Dict{Tuple{Int, Int}, Knowledge}, item) = k[(item.loc.x, item.loc.y)] = item
+
+learn!(agent, k) = add_to_knowledge!(agent.knowledge, k)
 
 
 # one grid point for now (could be node on a graph)
