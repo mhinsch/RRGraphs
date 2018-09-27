@@ -196,8 +196,25 @@ function mingle!(agent, location, par)
 	end
 end
 
+function interesting(agent, knowl, par)
+	boring = true
+	for t in knowl.trust
+		if t > par.boring
+			boring = false
+			break;
+		end
+	end
+	if boring
+		return false
+	end
 
-# TODO imperfect exchange (e.g. skip random knowledge pieces)
+	if abs(agent.loc.y - knowl.loc.y) > par.too_far
+		return false
+	end
+
+	return true
+end
+
 # TODO exchange dependent on trust into source
 function exchange_info!(a1, a2, par)
 	for k in values(a1.knowledge)
@@ -208,7 +225,7 @@ function exchange_info!(a1, a2, par)
 		# *** only a1 knows the location
 
 		if k_other == Unknown 
-			if rand() < par.p_transfer_info
+			if interesting(a2, k, par) && rand() < par.p_transfer_info
 				learn!(a2, deepcopy(k))
 			end
 			continue
@@ -239,7 +256,7 @@ function exchange_info!(a1, a2, par)
 		
 		# other has no knowledge at this location, just add it
 		if k_other == Unknown 
-			if rand() < par.p_transfer_info
+			if interesting(a1, k, par) && rand() < par.p_transfer_info
 				learn!(a1, deepcopy(k))
 			end
 			continue
@@ -252,7 +269,6 @@ end
 # - social network
 # - public information
 function step_agent_info!(agent, model, par)
-	#println("c")
 	for c in agent.contacts
 		if rand() < par.p_info_contacts
 			exchange_info!(agent, c, par)

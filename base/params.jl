@@ -26,6 +26,9 @@ using Parameters
 	weight_info		:: Float64	= 0.3
 	weight_resources:: Float64	= 0.5
 
+	boring			:: Float64	= 0.2
+	too_far 		:: Int		= 100
+
 	n_resources 	:: Int 		= 7
 
 	n_ini_contacts	:: Int		= 10
