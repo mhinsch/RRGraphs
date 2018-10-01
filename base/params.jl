@@ -28,6 +28,7 @@ using Parameters
 
 	boring			:: Float64	= 0.2
 	too_far 		:: Int		= 100
+	max_mem			:: Int		= 1000
 
 	n_resources 	:: Int 		= 7
 

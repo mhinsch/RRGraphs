@@ -225,7 +225,8 @@ function exchange_info!(a1, a2, par)
 		# *** only a1 knows the location
 
 		if k_other == Unknown 
-			if interesting(a2, k, par) && rand() < par.p_transfer_info
+			if interesting(a2, k, par) && rand() < par.p_transfer_info && 
+					length(a2.knowledge) < par.max_mem
 				learn!(a2, deepcopy(k))
 			end
 			continue
@@ -240,10 +241,10 @@ function exchange_info!(a1, a2, par)
 		for i in eachindex(k.values)
 			if k.trust[i] > k_other.trust[i]
 				k_other.values[i] = k.values[i]
-				k_other.trust[i] = k.values[i]
+				k_other.trust[i] = k.trust[i]
 			else
 				k.values[i] = k_other.values[i]
-				k.trust[i] = k_other.values[i]
+				k.trust[i] = k_other.trust[i]
 			end
 		end
 	end
@@ -256,7 +257,8 @@ function exchange_info!(a1, a2, par)
 		
 		# other has no knowledge at this location, just add it
 		if k_other == Unknown 
-			if interesting(a1, k, par) && rand() < par.p_transfer_info
+			if interesting(a1, k, par) && rand() < par.p_transfer_info &&
+					length(a1.knowledge) < par.max_mem
 				learn!(a1, deepcopy(k))
 			end
 			continue

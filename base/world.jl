@@ -75,7 +75,7 @@ knows_here(agent :: Agent) = knows_at(agent, agent.loc.x, agent.loc.y)
 
 
 add_to_knowledge!(k :: Vector{Knowledge}, item) = push!(k, item)
-	add_to_knowledge!(k :: Dict{Tuple{Int, Int}, Knowledge}, item) = k[(item.loc.x, item.loc.y)] = item
+add_to_knowledge!(k :: Dict{Tuple{Int, Int}, Knowledge}, item) = k[(item.loc.x, item.loc.y)] = item
 
 learn!(agent, k) = add_to_knowledge!(agent.knowledge, k)
 
