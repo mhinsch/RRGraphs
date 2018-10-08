@@ -16,7 +16,7 @@ end
 # - local experience (?)
 function quality(x, y, dx, k :: Knowledge, par)
 	v = 2.0 + dx
-	if (k.loc == Pos(0, 0))
+	if (k == Unknown)
 		return v + (rand() < 0.1 ? rand() : rand() * 0.1)
 	end
 
@@ -157,8 +157,8 @@ function explore!(agent, world, par)
 	k = knows_here(agent)
 	
 	if k == Unknown
-		k = Knowledge(agent.loc, fill(0.0, par.n_resources + 3), fill(0.0, par.n_resources+3), 0.0)
-		learn!(agent, k)
+		k = Knowledge(fill(0.0, par.n_resources + 3), fill(0.0, par.n_resources+3), 0.0)
+		learn!(agent, k, agent.loc.x, agent.loc.y)
 	end
 
 	# location
@@ -196,7 +196,7 @@ function mingle!(agent, location, par)
 	end
 end
 
-function interesting(agent, knowl, par)
+function interesting(agent, knowl, x, y, par)
 	boring = true
 	for t in knowl.trust
 		if t > par.boring
@@ -208,7 +208,7 @@ function interesting(agent, knowl, par)
 		return false
 	end
 
-	if abs(agent.loc.y - knowl.loc.y) > par.too_far
+	if abs(agent.loc.y - y) > par.too_far
 		return false
 	end
 
@@ -217,17 +217,19 @@ end
 
 # TODO exchange dependent on trust into source
 function exchange_info!(a1, a2, par)
-	for k in values(a1.knowledge)
+	for (loc, k) in a1.knowledge
 
-		l = k.loc
+		@assert k != Unknown
+
+		l = Pos(loc[1], loc[2])
 		k_other = knows_at(a2, l.x, l.y)
 		
 		# *** only a1 knows the location
 
 		if k_other == Unknown 
-			if interesting(a2, k, par) && rand() < par.p_transfer_info && 
+			if interesting(a2, k, l.x, l.y, par) && rand() < par.p_transfer_info && 
 					length(a2.knowledge) < par.max_mem
-				learn!(a2, deepcopy(k))
+				learn!(a2, Knowledge(k), l.x, l.y)
 			end
 			continue
 		end
@@ -251,15 +253,16 @@ function exchange_info!(a1, a2, par)
 
 	# *** transfer for location a2 knows but a1 doesn't
 	
-	for k in values(a2.knowledge)
-		l = k.loc
+	for (loc, k) in a2.knowledge
+		l = Pos(loc[1], loc[2])
 		k_other = knows_at(a1, l.x, l.y)
 		
 		# other has no knowledge at this location, just add it
 		if k_other == Unknown 
-			if interesting(a1, k, par) && rand() < par.p_transfer_info &&
+			#	println(length(a1.knowledge))
+			if interesting(a1, k, l.x, l.y, par) && rand() < par.p_transfer_info &&
 					length(a1.knowledge) < par.max_mem
-				learn!(a1, deepcopy(k))
+				learn!(a1, Knowledge(k), l.x, l.y)
 			end
 			continue
 		end

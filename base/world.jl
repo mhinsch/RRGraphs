@@ -1,4 +1,5 @@
 using Util
+using Util.PageDict
 
 
 # simple grid coords for now
@@ -9,8 +10,6 @@ end
 
 # a piece of knowledge an agent has about a location
 mutable struct Knowledge
-	# where
-	loc :: Pos
 	# property values the agent expects
 	values :: Vector{Float64}
 	# how certain it thinks they are
@@ -20,8 +19,11 @@ mutable struct Knowledge
 	experience :: Float64
 end
 
+function Knowledge(k::Knowledge)
+	Knowledge(copy(k.values), copy(k.trust), k.experience)
+end
 
-const Unknown = Knowledge(Pos(0, 0), [], [], 0.0)
+const Unknown = Knowledge([], [], 0.0)
 
 
 # migrants
@@ -30,8 +32,8 @@ mutable struct Agent
 	loc :: Pos
 	# what it thinks it knows about the world
 	# TODO optimize data structure for access by location
-	#knowledge :: Vector{Knowledge}
 	knowledge :: Dict{Tuple{Int, Int}, Knowledge}
+	#knowledge :: Page{Knowledge}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
@@ -40,6 +42,7 @@ end
 
 
 Agent(l :: Pos, c :: Float64) = Agent(l, Dict(), c, Agent[])
+#Agent(l :: Pos, c :: Float64) = Agent(l, Page{Knowledge}(), c, Agent[])
 
 
 function add_to_contacts!(agent, a)
@@ -53,31 +56,17 @@ end
 
 # this is very preliminary and should be optimized
 # TODO check if it's ok that this returns a reference
-function get_knowledge_at(knowledge :: Vector{Knowledge}, x, y)
-	for k in knowledge
-		if k.loc == Pos(x, y)
-			return k
-		end
-	end
-
-	return Unknown 
-end
-
-# this is very preliminary and should be optimized
-# TODO check if it's ok that this returns a reference
-function get_knowledge_at(knowledge :: Dict{Tuple{Int, Int}, Knowledge}, x, y)
-	get(knowledge, (x,y), Unknown)
-end
-
+get_knowledge_at(k :: Dict{Tuple{Int, Int}, Knowledge}, x, y) = get(k, (x,y), Unknown)
+get_knowledge_at(k::Page{Knowledge}, x, y) = get(k, x, y, Unknown)
 
 knows_at(agent :: Agent, x, y) = get_knowledge_at(agent.knowledge, x, y)
 knows_here(agent :: Agent) = knows_at(agent, agent.loc.x, agent.loc.y)
 
 
-add_to_knowledge!(k :: Vector{Knowledge}, item) = push!(k, item)
-add_to_knowledge!(k :: Dict{Tuple{Int, Int}, Knowledge}, item) = k[(item.loc.x, item.loc.y)] = item
+add_to_knowledge!(k :: Dict{Tuple{Int, Int}, Knowledge}, item, x, y) = k[(x, y)] = item
+add_to_knowledge!(k :: Page{Knowledge}, item, x, y) = set!(k, item, x, y)
 
-learn!(agent, k) = add_to_knowledge!(agent.knowledge, k)
+learn!(agent, k, x, y) = add_to_knowledge!(agent.knowledge, k, x, y)
 
 
 # one grid point for now (could be node on a graph)

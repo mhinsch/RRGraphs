@@ -1,6 +1,6 @@
 module Util
 
-export drop!, drop_at!, @set_to_max!, bresenham
+export drop!, drop_at!, @set_to_max!, bresenham, PageDict
 
 function drop!(cont, elem)
 	for i in eachindex(cont)
@@ -83,5 +83,7 @@ function bresenham(f :: Function, x1::Int, y1::Int, x2::Int, y2::Int)
 
 end
 
+
+include("page.jl")
 
 end
