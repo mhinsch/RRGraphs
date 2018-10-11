@@ -34,8 +34,12 @@ include("../base/simulation.jl")
 include("../base/draw.jl")
 include("../base/params.jl")
 
+using Random
+
 # const for performance reasons
 const parameters = Params(xsize = wsize, ysize = wsize)
+Random.seed!(parameters.rand_seed)
+
 
 world = create_world(parameters)
 model = Model(world, Agent[], Agent[])
@@ -54,7 +58,10 @@ while(true)
 		break;
 	end
 
-	step_simulation!(model, parameters)
+	for i in 1:5
+		step_simulation!(model, parameters)
+	end
+
 	draw!(pixels, model)
 
 	SDL2.UpdateTexture(texture, C_NULL, pixels, Int32(wsize * 4))

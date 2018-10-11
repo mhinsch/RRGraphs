@@ -16,11 +16,8 @@ function draw!(pixels, model)
 	end
 	
 	a = rand(model.migrants)
-	for k in values(a.knowledge)
-		if k.loc == Pos(0, 0)
-			continue
-		end
-		pixels[(k.loc.x-1)* ys + k.loc.y] = 0x000000FF
+	for (l, k) in a.knowledge
+		pixels[(l[1] - 1)* ys + l[2]] = 0x000000FF
 	end
 
 end

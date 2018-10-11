@@ -1,6 +1,6 @@
 module Util
 
-export drop!, drop_at!, @set_to_max!, bresenham, PageDict
+export drop!, drop_at!, @set_to_max!, bresenham, PageDict, limit, valley
 
 function drop!(cont, elem)
 	for i in eachindex(cont)
@@ -24,6 +24,21 @@ end
 macro set_to_max!(a, b)
 	esc(:(a > b ? (b = a) : (a=b)))
 end
+
+
+function sigmoid(x, alpha, mid)
+	c = mid/(1.0-mid)
+	x^alpha/(((1.0-x)*c)^alpha + x^alpha)
+end
+
+
+# 0 at bottom, sigmoid to 1 on both sides, f(bottom +- steep) == 0.5
+valley(x, bottom, steep, alpha=3) = 
+	abs((x-bottom)^alpha) / (steep^alpha + abs((x-bottom)^alpha))
+
+
+
+limit(mi, v, ma) = min(ma, max(v, mi))
 
 
 # based on this code:

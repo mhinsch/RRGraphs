@@ -20,12 +20,16 @@ function quality(x, y, dx, k :: Knowledge, par)
 		return v + (rand() < 0.1 ? rand() : rand() * 0.1)
 	end
 
-	v += (1.0 - k.values[1]) * par.weight_friction
-	v += (1.0 - k.values[2]) * par.weight_control
-	v += k.values[3] * par.weight_info
+	# friction
+	v += (1.0 - k.values[1]) * par.weights[1]
+	# control
+	v += (1.0 - k.values[2]) * par.weights[2]
+	# info
+	v += k.values[3] * par.weights[3]
 
+	# resources
 	for i in 4:length(k.values)
-		v += k.values[i] * par.weight_resources / i
+		v += k.values[i] * par.weights[4] / i
 	end
 	
 	v
@@ -45,7 +49,7 @@ function decide_move(agent :: Agent, world::World, par)
 	y2 = min(loc.y+1, size(world.area)[2])
 
 	bestx, besty = 0, 0
-	bestq = 0.0
+	bestq = -1000.0
 	for x in x1:x2, y in y1:y2
 		q = quality(x, y, x-loc.x, knows_at(agent, x, y), par)
 		if q > bestq
@@ -74,15 +78,21 @@ function step_simulation!(model::Model, par)
 	handle_departures!(model, par)
 
 	m = 0
+	mm = 0
+	cap = 0
 
 	for a in model.migrants
 		step_agent!(a, model, par)
-		m += length(a.knowledge)
+		ml = length(a.knowledge)
+		mm = max(ml, mm)
+		m += ml
+		cap += a.capital
 	end
 
 	m /= length(model.migrants)
+	cap /= length(model.migrants)
 
-	println("avg. mem: ", m)
+	println("mem: ", m, " ", mm, " cap: ", cap)
 
 	handle_arrivals!(model, par)
 
@@ -196,10 +206,24 @@ function mingle!(agent, location, par)
 	end
 end
 
-function interesting(agent, knowl, x, y, par)
+function interesting_coord(agent, x, y, par)
+	if abs(agent.loc.y - y) > par.too_far
+		return false
+	end
+
+	if agent.loc.x - x > par.look_back
+		return false
+	end
+
+	return true
+end
+
+
+function interesting_old(agent, knowl, x, y, par)
 	boring = true
-	for t in knowl.trust
-		if t > par.boring
+	for i in eachindex(knowl.trust)
+		if knowl.trust[i] > par.intr_trust && 
+			abs(knowl.values[i]-par.intr_expctd[i]) > par.intr_thresh[i]
 			boring = false
 			break;
 		end
@@ -208,26 +232,43 @@ function interesting(agent, knowl, x, y, par)
 		return false
 	end
 
-	if abs(agent.loc.y - y) > par.too_far
-		return false
-	end
-
 	return true
 end
 
-# TODO exchange dependent on trust into source
+
+function interesting(agent, knowl, x, y, par)
+	int = 0.0	
+
+	for i in eachindex(knowl.trust)
+		#if knowl.trust[i] > par.intr_trust && 
+		int = max(knowl.trust[i] * 
+			valley(knowl.values[i], par.intr_expctd[i], par.intr_steep[i]))
+	end
+
+	@assert 0 <= int <= 1
+
+	int
+end
+
+
 function exchange_info!(a1, a2, par)
 	for (loc, k) in a1.knowledge
 
 		@assert k != Unknown
 
 		l = Pos(loc[1], loc[2])
+
+		# too far away or too far back
+		if !interesting_coord(a2, l.x, l.y, par)
+			continue
+		end
+
 		k_other = knows_at(a2, l.x, l.y)
 		
 		# *** only a1 knows the location
 
 		if k_other == Unknown 
-			if interesting(a2, k, l.x, l.y, par) && rand() < par.p_transfer_info && 
+			if rand() < interesting(a2, k, l.x, l.y, par) && rand() < par.p_transfer_info && 
 					length(a2.knowledge) < par.max_mem
 				learn!(a2, Knowledge(k), l.x, l.y)
 			end
@@ -255,12 +296,18 @@ function exchange_info!(a1, a2, par)
 	
 	for (loc, k) in a2.knowledge
 		l = Pos(loc[1], loc[2])
+
+		# too far away or too far back
+		if !interesting_coord(a1, l.x, l.y, par)
+			continue
+		end
+
 		k_other = knows_at(a1, l.x, l.y)
 		
 		# other has no knowledge at this location, just add it
 		if k_other == Unknown 
 			#	println(length(a1.knowledge))
-			if interesting(a1, k, l.x, l.y, par) && rand() < par.p_transfer_info &&
+			if rand() < interesting(a1, k, l.x, l.y, par) && rand() < par.p_transfer_info &&
 					length(a1.knowledge) < par.max_mem
 				learn!(a1, Knowledge(k), l.x, l.y)
 			end
@@ -312,7 +359,7 @@ end
 # all agents at target get removed from world (but remain in network)
 function handle_arrivals!(model::Model, par)
 	# go backwards, so that removal doesn't mess up the index
-	for i in length(model.migrants):1
+	for i in length(model.migrants):-1:1
 		if model.migrants[i].loc.x >= size(model.world.area)[1]
 			drop_at!(model.migrants, i)
 			remove_agent!(world, agent)

@@ -2,9 +2,6 @@ using GeoGraph
 using DiamondSquare
 using Util
 
-function setup_location!(loc, terrain)
-	set_p!(loc, :friction, terrain)
-end
 
 function create_landscape(par)
 	world = World([Location(par.n_resources) for x=1:par.xsize, y=1:par.ysize])
@@ -17,7 +14,9 @@ function create_landscape(par)
 
 	data .= (data .- mima[1]) ./ (mima[2]-mima[1]) .* par.frict_map_range
 
-	setup_location!.(world.area, data)
+	set_p!.(world.area, :friction, data)
+	set_p!.(world.area, :control, par.control_default)
+	set_p!.(world.area, :information, par.inf_default)
 
 	for i in 1:par.n_start_pos
 		push!(world.entries, floor(Int, rand()*par.ysize/2 + par.ysize/4))
@@ -31,6 +30,9 @@ function setup_city!(loc, par)
 	set_p!(loc, :friction, par.frict_city)
 	set_p!(loc, :control, par.control_city)
 	set_p!(loc, :information, par.inf_city)
+	for i in 1:par.n_resources
+		set_r!(loc, i, par.res_city)
+	end
 end
 
 

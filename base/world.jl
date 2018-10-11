@@ -32,8 +32,8 @@ mutable struct Agent
 	loc :: Pos
 	# what it thinks it knows about the world
 	# TODO optimize data structure for access by location
-	knowledge :: Dict{Tuple{Int, Int}, Knowledge}
-	#knowledge :: Page{Knowledge}
+	#knowledge :: Dict{Tuple{Int, Int}, Knowledge}
+	knowledge :: Page{Knowledge}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
@@ -41,8 +41,8 @@ mutable struct Agent
 end
 
 
-Agent(l :: Pos, c :: Float64) = Agent(l, Dict(), c, Agent[])
-#Agent(l :: Pos, c :: Float64) = Agent(l, Page{Knowledge}(), c, Agent[])
+#Agent(l :: Pos, c :: Float64) = Agent(l, Dict(), c, Agent[])
+Agent(l :: Pos, c :: Float64) = Agent(l, Page{Knowledge}(), c, Agent[])
 
 
 function add_to_contacts!(agent, a)
@@ -87,8 +87,8 @@ prop(n::Symbol) = n == :friction ? 1 : (n == :control ? 2 : (n == :information ?
 get_p(l :: Location, p :: Symbol) = l.properties[prop(p)]
 set_p!(l :: Location, p :: Symbol, v :: Float64) = l.properties[prop(p)] = v
 # resources
-get_r(l :: Location, r :: Int) = l.properties[i+3]
-set_r!(l :: Location, r :: Int, v :: Float64) = l.properties[i+3] = v
+get_r(l :: Location, r :: Int) = l.properties[r+3]
+set_r!(l :: Location, r :: Int, v :: Float64) = l.properties[r+3] = v
 
 
 # construct empty location
