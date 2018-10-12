@@ -12,6 +12,7 @@ using Parameters
 	ysize 			:: Int 		= 1025
 	n_cities		:: Int		= 100
 	link_thresh		:: Float64	= 0.2
+	hurst			:: Float64	= 0.5
 
 	n_start_pos 	:: Int 		= 1
 	n_dep_per_step 	:: Int 		= 3
@@ -25,13 +26,15 @@ using Parameters
 	inf_city 		:: Float64 	= 0.8
 	inf_default		:: Float64	= 0.1
 	res_city		:: Float64	= 0.8
+	opaq_city		:: Float64	= 0.6
+	opaq_default	:: Float64	= 0.3
 
 	# *** quality 
 	# friction, control, info, resources...
 	weights 		 			= [0.3, 0.5, 0.3, 0.5]
+	qual_boring		:: Float64	= 0.5
 
 	# *** info exchange
-	intr_trust		:: Float64	= 0.3
 	# friction, control, info, resources...
 	intr_expctd					= [0.5, 0.2, 0.1, 0.0]
 	intr_steep					= [0.3, 0.2, 0.3, 0.2]

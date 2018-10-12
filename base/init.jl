@@ -8,7 +8,7 @@ function create_landscape(par)
 
 	data = fill(0.0, par.xsize, par.ysize)
 	myrng(r1, r2) = rand() * (r2 - r1) + r1
-	diamond_square(data, myrng, wrap=false)
+	diamond_square(data, myrng, hurst=par.hurst, wrap=false)
 
 	mima = extrema(data)
 
@@ -17,6 +17,7 @@ function create_landscape(par)
 	set_p!.(world.area, :friction, data)
 	set_p!.(world.area, :control, par.control_default)
 	set_p!.(world.area, :information, par.inf_default)
+	setproperty!.(world.area, :opaqueness, par.opaq_default)
 
 	for i in 1:par.n_start_pos
 		push!(world.entries, floor(Int, rand()*par.ysize/2 + par.ysize/4))
@@ -33,6 +34,7 @@ function setup_city!(loc, par)
 	for i in 1:par.n_resources
 		set_r!(loc, i, par.res_city)
 	end
+	loc.opaqueness = par.opaq_city
 end
 
 

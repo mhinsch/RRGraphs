@@ -34,6 +34,7 @@ mutable struct Agent
 	# TODO optimize data structure for access by location
 	#knowledge :: Dict{Tuple{Int, Int}, Knowledge}
 	knowledge :: Page{Knowledge}
+	boring :: Page{Float64}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
@@ -42,7 +43,7 @@ end
 
 
 #Agent(l :: Pos, c :: Float64) = Agent(l, Dict(), c, Agent[])
-Agent(l :: Pos, c :: Float64) = Agent(l, Page{Knowledge}(), c, Agent[])
+Agent(l :: Pos, c :: Float64) = Agent(l, Page{Knowledge}(), Page{Float64}(), c, Agent[])
 
 
 function add_to_contacts!(agent, a)
@@ -67,6 +68,9 @@ add_to_knowledge!(k :: Dict{Tuple{Int, Int}, Knowledge}, item, x, y) = k[(x, y)]
 add_to_knowledge!(k :: Page{Knowledge}, item, x, y) = set!(k, item, x, y)
 
 learn!(agent, k, x, y) = add_to_knowledge!(agent.knowledge, k, x, y)
+
+set_boring!(agent, x, y, v) = set!(agent.boring, v, x, y)
+is_boring(agent, x, y) = get(agent.boring, x, y, NaN)
 
 
 # one grid point for now (could be node on a graph)

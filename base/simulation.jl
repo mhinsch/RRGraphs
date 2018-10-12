@@ -14,10 +14,12 @@ end
 # - plans (?)
 # - transport (?)
 # - local experience (?)
-function quality(x, y, dx, k :: Knowledge, par)
+function quality(x, y, dx, k :: Knowledge, boring, par)
 	v = 2.0 + dx
 	if (k == Unknown)
-		return v + (rand() < 0.1 ? rand() : rand() * 0.1)
+		return isnan(boring) ? 
+			v + (rand() < 0.1 ? rand() : rand() * 0.1) :
+			par.qual_boring
 	end
 
 	# friction
@@ -51,7 +53,7 @@ function decide_move(agent :: Agent, world::World, par)
 	bestx, besty = 0, 0
 	bestq = -1000.0
 	for x in x1:x2, y in y1:y2
-		q = quality(x, y, x-loc.x, knows_at(agent, x, y), par)
+		q = quality(x, y, x-loc.x, knows_at(agent, x, y), is_boring(agent, x, y), par)
 		if q > bestq
 			bestq = q
 			bestx, besty = x, y
@@ -161,13 +163,17 @@ end
 
 # arbitrary, very simplistic implementation
 # TODO discuss with group
-# TODO parameterize
 function explore!(agent, world, par)
 	# knowledge
 	k = knows_here(agent)
 	
 	if k == Unknown
-		k = Knowledge(fill(0.0, par.n_resources + 3), fill(0.0, par.n_resources+3), 0.0)
+		# agents start off with expected values
+		k = Knowledge(copy(par.intr_expctd), fill(0.0, par.n_resources+3), 0.0)
+		# fill remaining resources
+		for i in (length(k.values)+1):(par.n_resources+3)
+			push!(k.values, par.intr_expctd[end])
+		end
 		learn!(agent, k, agent.loc.x, agent.loc.y)
 	end
 
@@ -219,28 +225,10 @@ function interesting_coord(agent, x, y, par)
 end
 
 
-function interesting_old(agent, knowl, x, y, par)
-	boring = true
-	for i in eachindex(knowl.trust)
-		if knowl.trust[i] > par.intr_trust && 
-			abs(knowl.values[i]-par.intr_expctd[i]) > par.intr_thresh[i]
-			boring = false
-			break;
-		end
-	end
-	if boring
-		return false
-	end
-
-	return true
-end
-
-
 function interesting(agent, knowl, x, y, par)
 	int = 0.0	
 
 	for i in eachindex(knowl.trust)
-		#if knowl.trust[i] > par.intr_trust && 
 		int = max(knowl.trust[i] * 
 			valley(knowl.values[i], par.intr_expctd[i], par.intr_steep[i]))
 	end
@@ -249,6 +237,21 @@ function interesting(agent, knowl, x, y, par)
 
 	int
 end
+
+
+function maybe_learn!(agent, k, l, par)
+	if length(agent.knowledge) >= par.max_mem || rand() >= par.p_transfer_info 
+		return
+	end
+
+	int = interesting(agent, k, l.x, l.y, par) 
+	if rand() < int 
+		learn!(agent, Knowledge(k), l.x, l.y)
+	else
+		set_boring!(agent, l.x, l.y, int)
+	end
+end
+
 
 
 function exchange_info!(a1, a2, par)
@@ -268,10 +271,7 @@ function exchange_info!(a1, a2, par)
 		# *** only a1 knows the location
 
 		if k_other == Unknown 
-			if rand() < interesting(a2, k, l.x, l.y, par) && rand() < par.p_transfer_info && 
-					length(a2.knowledge) < par.max_mem
-				learn!(a2, Knowledge(k), l.x, l.y)
-			end
+			maybe_learn!(a2, k, l, par)
 			continue
 		end
 
@@ -304,13 +304,9 @@ function exchange_info!(a1, a2, par)
 
 		k_other = knows_at(a1, l.x, l.y)
 		
-		# other has no knowledge at this location, just add it
+		# other has no knowledge at this location, add it
 		if k_other == Unknown 
-			#	println(length(a1.knowledge))
-			if rand() < interesting(a1, k, l.x, l.y, par) && rand() < par.p_transfer_info &&
-					length(a1.knowledge) < par.max_mem
-				learn!(a1, Knowledge(k), l.x, l.y)
-			end
+			maybe_learn!(a1, k, l, par)
 			continue
 		end
 	end
