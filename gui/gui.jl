@@ -8,9 +8,10 @@ SDL2.GL_SetAttribute(SDL2.GL_MULTISAMPLESAMPLES, 16)
 
 SDL2.init()
 
-const wsize = 1025
+const panel_size = 1025
+const win_size = 2 * panel_size
 
-win = SDL2.CreateWindow("Hello World!", Int32(0), Int32(0), Int32(wsize), Int32(wsize), 
+win = SDL2.CreateWindow("Hello World!", Int32(0), Int32(0), Int32(win_size), Int32(win_size), 
     UInt32(SDL2.WINDOW_SHOWN))
 SDL2.SetWindowResizable(win,false)
 
@@ -19,13 +20,15 @@ surface = SDL2.GetWindowSurface(win)
 renderer = SDL2.CreateRenderer(win, Int32(-1),
     UInt32(SDL2.RENDERER_ACCELERATED))
 
-import Base.unsafe_convert
-unsafe_convert(::Type{Ptr{SDL2.RWops}}, s::String) = SDL2.RWFromFile(s, "rb")
 
 bkg = SDL2.Color(200, 200, 200, 255)
 
-texture = SDL2.CreateTexture(renderer, SDL2.PIXELFORMAT_ARGB8888, Int32(SDL2.TEXTUREACCESS_STREAMING), Int32(wsize), Int32(wsize))
-pixels = Vector{UInt32}(undef, wsize*wsize)
+texture_tl = SDL2.CreateTexture(renderer, SDL2.PIXELFORMAT_ARGB8888, Int32(SDL2.TEXTUREACCESS_STREAMING), Int32(panel_size), Int32(panel_size))
+texture_tr = SDL2.CreateTexture(renderer, SDL2.PIXELFORMAT_ARGB8888, Int32(SDL2.TEXTUREACCESS_STREAMING), Int32(panel_size), Int32(panel_size))
+texture_bl = SDL2.CreateTexture(renderer, SDL2.PIXELFORMAT_ARGB8888, Int32(SDL2.TEXTUREACCESS_STREAMING), Int32(panel_size), Int32(panel_size))
+
+pixels_bg = Vector{UInt32}(undef, panel_size*panel_size)
+pixels = Vector{UInt32}(undef, panel_size*panel_size)
 
 push!(LOAD_PATH, "/home/martin/Science/southampton/src/rumours/")
 include("../base/world.jl")
@@ -37,7 +40,7 @@ include("../base/params.jl")
 using Random
 
 # const for performance reasons
-const parameters = Params(xsize = wsize, ysize = wsize)
+const parameters = Params(xsize = panel_size, ysize = panel_size)
 Random.seed!(parameters.rand_seed)
 
 
@@ -48,25 +51,45 @@ model = Model(world, Agent[], Agent[])
 
 count = 1
 
+draw_bg!(Canvas(pixels_bg, panel_size), model)
+rect_tl = SDL2.Rect(0, 0, panel_size, panel_size)
+rect_tr = SDL2.Rect(panel_size, 0, panel_size, panel_size)
+rect_bl = SDL2.Rect(0, panel_size, panel_size, panel_size)
+
 while(true)
 	println(count, " ", length(model.people))
 	count += 1
 
 	ev = SDL2.event()
 	
-	if typeof(ev) <: SDL2.KeyboardEvent || typeof(ev) <: SDL2.QuitEvent
+	if typeof(ev) <: SDL2.KeyboardEvent #|| typeof(ev) <: SDL2.QuitEvent
 		break;
 	end
 
-	for i in 1:5
+	for i in 1:1
 		step_simulation!(model, parameters)
 	end
 
-	draw!(pixels, model)
+	canvas = Canvas(pixels, panel_size)
 
-	SDL2.UpdateTexture(texture, C_NULL, pixels, Int32(wsize * 4))
+	copy!(pixels, pixels_bg)
+	draw_people!(canvas, model)
+	SDL2.UpdateTexture(texture_tl, C_NULL, pixels, Int32(panel_size * 4))
+
+	fill!(pixels, 0)
+	draw_rand_knowledge!(canvas, model)
+	SDL2.UpdateTexture(texture_tr, C_NULL, pixels, Int32(panel_size * 4))
+
+	if count % 10 == 0
+		fill!(pixels, 0)
+		draw_visitors!(canvas, model)
+		SDL2.UpdateTexture(texture_bl, C_NULL, pixels, Int32(panel_size * 4))
+	end
+
 	SDL2.RenderClear(renderer)
-	SDL2.RenderCopy(renderer, texture, C_NULL, C_NULL)
+	SDL2.RenderCopy(renderer, texture_tl, C_NULL, pointer_from_objref(rect_tl)) 
+	SDL2.RenderCopy(renderer, texture_tr, C_NULL, pointer_from_objref(rect_tr))
+	SDL2.RenderCopy(renderer, texture_bl, C_NULL, pointer_from_objref(rect_bl))
 
     SDL2.RenderPresent(renderer)
     sleep(0.001)
