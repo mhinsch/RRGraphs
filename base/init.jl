@@ -14,10 +14,11 @@ function create_landscape(par)
 
 	data .= (data .- mima[1]) ./ (mima[2]-mima[1]) .* par.frict_map_range
 
-	set_p!.(world.area, :friction, data)
-	set_p!.(world.area, :control, par.control_default)
-	set_p!.(world.area, :information, par.inf_default)
-	setproperty!.(world.area, :opaqueness, par.opaq_default)
+	set_p!.(world.area, FRICTION, data)
+	set_p!.(world.area, CONTROL, par.control[L_DEFAULT])
+	set_p!.(world.area, INFO, par.info[L_DEFAULT])
+	setproperty!.(world.area, :opaqueness, par.opacity[L_DEFAULT])
+	setproperty!.(world.area, :typ, L_DEFAULT)
 
 	for i in 1:par.n_start_pos
 		push!(world.entries, floor(Int, rand()*par.ysize/2 + par.ysize/4))
@@ -27,20 +28,22 @@ function create_landscape(par)
 end
 
 
-function setup_city!(loc, par)
-	set_p!(loc, :friction, par.frict_city)
-	set_p!(loc, :control, par.control_city)
-	set_p!(loc, :information, par.inf_city)
+function setup_city!(loc, n_links, par)
+	set_p!(loc, FRICTION, par.friction[L_CITY])
+	set_p!(loc, CONTROL, par.control[L_CITY])
+	set_p!(loc, INFO, par.info[L_CITY])
 	for i in 1:par.n_resources
-		set_r!(loc, i, par.res_city)
+		set_r!(loc, i, par.resources[L_CITY])
 	end
-	loc.opaqueness = par.opaq_city
+	loc.opaqueness = par.opacity[L_CITY]
+	loc.typ = L_CITY
 end
 
 
 function setup_link!(loc, par)
-	set_p!(loc, :friction, par.frict_link)
-	set_p!(loc, :control, par.control_link)
+	set_p!(loc, FRICTION, par.friction[L_LINK])
+	set_p!(loc, CONTROL, par.control[L_LINK])
+	loc.typ = L_LINK
 end
 
 
@@ -50,15 +53,19 @@ function add_cities!(world, par)
 	world.cities = 
 		map(x -> (floor(Int, x[1]*(par.xsize-1) + 1), floor(Int, x[2]*(par.ysize-1)+1)), nodes)
 
-	# cities
-	for (x, y) in world.cities
-		setup_city!(world.area[x, y], par)
-	end
-
+	n_links = fill(0, length(world.cities))
 	for (i, j) in world.links
 		bresenham(world.cities[i]..., world.cities[j]...) do x, y
 			setup_link!(world.area[x, y], par)
+		n_links[i] += 1
+		n_links[j] += 1
 		end
+	end
+
+	# cities
+	for i in eachindex(world.cities)
+		x, y = world.cities[i]
+		setup_city!(world.area[x, y], n_links[i], par)
 	end
 end
 

@@ -8,6 +8,12 @@ struct Pos
 	y :: Int
 end
 
+
+const FRICTION = 1
+const CONTROL = 2
+const INFO = 3
+const RESRC = 4
+
 # a piece of knowledge an agent has about a location
 mutable struct Knowledge
 	# property values the agent expects
@@ -31,7 +37,6 @@ mutable struct Agent
 	# current position
 	loc :: Pos
 	# what it thinks it knows about the world
-	# TODO optimize data structure for access by location
 	#knowledge :: Dict{Tuple{Int, Int}, Knowledge}
 	knowledge :: Page{Knowledge}
 	boring :: Page{Float64}
@@ -39,11 +44,12 @@ mutable struct Agent
 	capital :: Float64
 	# people at home & in target country, other migrants
 	contacts :: Vector{Agent}
+	targets :: Vector{Pos}
 end
 
 
 #Agent(l :: Pos, c :: Float64) = Agent(l, Dict(), c, Agent[])
-Agent(l :: Pos, c :: Float64) = Agent(l, Page{Knowledge}(), Page{Float64}(), c, Agent[])
+Agent(l :: Pos, c :: Float64) = Agent(l, Page{Knowledge}(), Page{Float64}(), c, Agent[], Pos[])
 
 
 function add_to_contacts!(agent, a)
@@ -56,7 +62,6 @@ end
 
 
 # this is very preliminary and should be optimized
-# TODO check if it's ok that this returns a reference
 get_knowledge_at(k :: Dict{Tuple{Int, Int}, Knowledge}, x, y) = get(k, (x,y), Unknown)
 get_knowledge_at(k::Page{Knowledge}, x, y) = get(k, x, y, Unknown)
 
@@ -72,6 +77,9 @@ learn!(agent, k, x, y) = add_to_knowledge!(agent.knowledge, k, x, y)
 set_boring!(agent, x, y, v) = set!(agent.boring, v, x, y)
 is_boring(agent, x, y) = get(agent.boring, x, y, NaN)
 
+const L_DEFAULT = 1
+const L_CITY = 2
+const L_LINK = 3
 
 # one grid point for now (could be node on a graph)
 mutable struct Location
@@ -81,24 +89,24 @@ mutable struct Location
 	opaqueness :: Float64
 	# migrants present
 	people :: Vector{Agent}
+	typ :: Int
+
+	count :: Int
 end
 
 
-# helper to access properties by name
-prop(n::Symbol) = n == :friction ? 1 : (n == :control ? 2 : (n == :information ? 3 : 0))
-
 # named properties
-get_p(l :: Location, p :: Symbol) = l.properties[prop(p)]
-set_p!(l :: Location, p :: Symbol, v :: Float64) = l.properties[prop(p)] = v
+get_p(l :: Location, p :: Int) = l.properties[p]
+set_p!(l :: Location, p :: Int, v :: Float64) = l.properties[p] = v
 # resources
-get_r(l :: Location, r :: Int) = l.properties[r+3]
-set_r!(l :: Location, r :: Int, v :: Float64) = l.properties[r+3] = v
+get_r(l :: Location, r :: Int) = l.properties[r-1 + RESRC]
+set_r!(l :: Location, r :: Int, v :: Float64) = l.properties[r-1 + RESRC] = v
 
 
 # construct empty location
-Location() = Location(fill(0.0, 3), 0, Vector{Agent}(undef, 0))
+Location() = Location(fill(0.0, RESRC-1), 0, Vector{Agent}(undef, 0), 0, 0)
 
-Location(n) = Location(fill(0.0, n+3), 0, Vector{Agent}(undef, 0))
+Location(n) = Location(fill(0.0, n + RESRC-1), 0, Vector{Agent}(undef, 0), 0, 0)
 
 
 mutable struct World
@@ -116,7 +124,10 @@ World(a::Matrix{Location}) = World(a, [], [], [])
 remove_agent!(loc::Location, agent::Agent) = drop!(loc.people, agent)
 
 
-add_agent!(loc::Location, agent::Agent) = push!(loc.people, agent)
+function add_agent!(loc::Location, agent::Agent) 
+	push!(loc.people, agent)
+	loc.count += 1
+end
 
 
 find_location(world, x, y) = world.area[x, y]

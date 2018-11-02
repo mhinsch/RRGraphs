@@ -1,4 +1,5 @@
-using  Util
+using Util
+using Distributions
 
 mutable struct Model
 	world :: World
@@ -14,24 +15,60 @@ end
 # - plans (?)
 # - transport (?)
 # - local experience (?)
-function quality(x, y, dx, k :: Knowledge, boring, par)
-	v = 2.0 + dx
+function quality(agent, dx, dy, k :: Knowledge, boring, par)
+	t = Pos(agent.loc.x + 3, agent.loc.y)
+
+	for pt in agent.targets
+		if reachable(agent, pt)
+			t = pt
+			break
+		end
+	end
+
+	tdx = sign(t.x - agent.loc.x)
+	tdy = sign(t.y - agent.loc.y)
+
+	v = 2.0 + tdx * dx + tdy * dy 
 	if (k == Unknown)
+		# might not remember but still know it
 		return isnan(boring) ? 
 			v + (rand() < 0.1 ? rand() : rand() * 0.1) :
 			par.qual_boring
 	end
 
 	# friction
-	v += (1.0 - k.values[1]) * par.weights[1]
+	v += (1.0 - k.values[1]) * par.weights[1] * k.trust[1]
 	# control
-	v += (1.0 - k.values[2]) * par.weights[2]
+	v += (1.0 - k.values[2]) * par.weights[2] * k.trust[2]
 	# info
-	v += k.values[3] * par.weights[3]
+	v += k.values[3] * par.weights[3] * k.trust[3]
 
 	# resources
 	for i in 4:length(k.values)
-		v += k.values[i] * par.weights[4] / i
+		v += k.values[i] * par.weights[4] / (i-3) * k.trust[i]
+	end
+	
+	v
+end
+
+
+function quality_target(k :: Knowledge, par)
+	if (k == Unknown)
+		return 0
+	end
+
+	v = 0
+
+	# friction
+	v += (1.0 - k.values[1]) * par.weights_target[1] * k.trust[1]
+	# control
+	v += (1.0 - k.values[2]) * par.weights_target[2] * k.trust[2]
+	# info
+	v += k.values[3] * par.weights_target[3] * k.trust[3]
+
+	# resources
+	for i in 4:length(k.values)
+		v += k.values[i] * par.weights_target[4] / (i-3) * k.trust[i]
 	end
 	
 	v
@@ -53,7 +90,7 @@ function decide_move(agent :: Agent, world::World, par)
 	bestx, besty = 0, 0
 	bestq = -1000.0
 	for x in x1:x2, y in y1:y2
-		q = quality(x, y, x-loc.x, knows_at(agent, x, y), is_boring(agent, x, y), par)
+		q = quality(agent, x-loc.x, y-loc.y, knows_at(agent, x, y), is_boring(agent, x, y), par)
 		if q > bestq
 			bestq = q
 			bestx, besty = x, y
@@ -82,19 +119,24 @@ function step_simulation!(model::Model, par)
 	m = 0
 	mm = 0
 	cap = 0
+	targ = 0
+	mtarg = 0
 
 	for a in model.migrants
 		step_agent!(a, model, par)
 		ml = length(a.knowledge)
-		mm = max(ml, mm)
 		m += ml
+		mm = max(ml, mm)
 		cap += a.capital
+		targ += length(a.targets)
+		mtarg = max(mtarg, length(a.targets))
 	end
 
 	m /= length(model.migrants)
 	cap /= length(model.migrants)
+	targ /= length(model.migrants)
 
-	println("mem: ", m, " ", mm, " cap: ", cap)
+	println("mem: ", m, " ", mm, " cap: ", cap, " targets: ", targ, " ", mtarg)
 
 	handle_arrivals!(model, par)
 
@@ -121,7 +163,7 @@ end
 
 # TODO control
 function costs_move!(a, loc, par)
-	a.capital -= par.costs_move * get_p(loc, :friction)
+	a.capital -= par.costs_move * get_p(loc, FRICTION)
 end
 
 
@@ -151,6 +193,9 @@ function step_agent_move!(agent, world, par)
 	#println("moving to $(loc.x), $(loc.y)")
 	costs_move!(agent, find_location(world, loc.x, loc.y), par)
 	move!(world, agent, loc.x, loc.y)
+	explore_at!(agent, world, loc.x, loc.y, par.move_learn, par)
+
+	check_targets!(agent)
 end
 
 
@@ -161,34 +206,56 @@ function step_agent_stay!(agent, world, par)
 end
 
 
+function explore!(agent, world, par)
+	loc = agent.loc
+	# Moore neighbourhood
+	x1 = max(loc.x-1, 1)
+	x2 = min(loc.x+1, size(world.area)[1])
+	y1 = max(loc.y-1, 1)
+	y2 = min(loc.y+1, size(world.area)[2])
+
+	info = get_p(find_location(world, loc.x, loc.y), INFO)
+
+	for x in x1:x2, y in y1:y2
+		if x == loc.x && y == loc.y
+			explore_at!(agent, world, x, y, 1.0, par)
+		else
+			explore_at!(agent, world, x, y, info, par)
+		end
+	end
+end
+
+
 # arbitrary, very simplistic implementation
 # TODO discuss with group
-function explore!(agent, world, par)
+function explore_at!(agent, world, x, y, speed, par)
 	# knowledge
-	k = knows_here(agent)
+	k = knows_at(agent, x, y)
 	
+	# location
+	l = find_location(world, x, y)
+
 	if k == Unknown
 		# agents start off with expected values
-		k = Knowledge(copy(par.intr_expctd), fill(0.0, par.n_resources+3), 0.0)
+		k = Knowledge(copy(par.intr_expctd[l.typ, :]), fill(0.0, par.n_resources+3), 0.0)
 		# fill remaining resources
 		for i in (length(k.values)+1):(par.n_resources+3)
-			push!(k.values, par.intr_expctd[end])
+			push!(k.values, par.intr_expctd[l.typ, RESRC])
 		end
 		learn!(agent, k, agent.loc.x, agent.loc.y)
 	end
 
-	# location
-	l = agent_location(agent, world)
-
 	# gain local experience
-	k.experience += (1.0 - k.experience) * (1.0 - l.opaqueness)
+	k.experience += (1.0 - k.experience) * (1.0 - l.opaqueness) * speed
 
 	# gain information on local properties
 	for p in eachindex(k.values)
 		# stochasticity?
-		k.values[p] += (l.properties[p] - k.values[p]) * k.experience
-		k.trust[p] += (1.0 - k.trust[p]) * k.experience
+		k.values[p] += (l.properties[p] - k.values[p]) * k.experience * speed
+		k.trust[p] += (1.0 - k.trust[p]) * k.experience * speed
 	end
+
+	k, l
 end
 
 
@@ -229,13 +296,60 @@ function interesting(agent, knowl, x, y, par)
 	int = 0.0	
 
 	for i in eachindex(knowl.trust)
-		int = max(knowl.trust[i] * 
-			valley(knowl.values[i], par.intr_expctd[i], par.intr_steep[i]))
+		int = max(int, sqrt(knowl.trust[i]) * 
+			valley(knowl.values[i], par.intr_expctd[L_DEFAULT, i], par.intr_steep[i]))
 	end
 
 	@assert 0 <= int <= 1
 
 	int
+end
+
+
+function reachable(agent, pos)
+	l = agent.loc
+	pos.x > l.x && abs(pos.y - l.y) / (pos.x - l.x) < 1.0
+end
+
+
+function check_targets!(agent)
+	n = length(agent.targets) 
+	if n < 1 || reachable(agent, agent.targets[1])
+		return
+	end
+	
+	hole = 1
+	for i in 2:n
+		if reachable(agent, agent.targets[i])
+			agent.targets[hole] = agent.targets[i]
+			hole += 1
+		end
+	end
+
+	deleteat!(agent.targets, hole:n)
+end
+
+
+function maybe_target!(agent, k, x, y, par, check=true)
+	pt = Pos(x, y)
+	if check && (pt in agent.targets)
+		return
+	end
+
+	q = quality_target(k, par)
+
+	#print(round(q, digits=2), ",")
+
+	if q < par.min_target_quality
+		return
+	end
+
+	if !reachable(agent, pt)
+		return
+	end
+	
+	push!(agent.targets, pt)
+	sort!(agent.targets, by = pos -> pos.x)
 end
 
 
@@ -245,13 +359,13 @@ function maybe_learn!(agent, k, l, par)
 	end
 
 	int = interesting(agent, k, l.x, l.y, par) 
-	if rand() < int 
+	if (rand()+rand())/2 < int 
 		learn!(agent, Knowledge(k), l.x, l.y)
+		maybe_target!(agent, k, l.x, l.y, par, false)
 	else
 		set_boring!(agent, l.x, l.y, int)
 	end
 end
-
 
 
 function exchange_info!(a1, a2, par)
@@ -282,14 +396,15 @@ function exchange_info!(a1, a2, par)
 
 		# both have knowledge at l, compare by trust and transfer accordingly
 		for i in eachindex(k.values)
-			if k.trust[i] > k_other.trust[i]
-				k_other.values[i] = k.values[i]
-				k_other.trust[i] = k.trust[i]
-			else
-				k.values[i] = k_other.values[i]
-				k.trust[i] = k_other.trust[i]
-			end
+			k.values[i] = (k.values[i] * k.trust[i] + k_other.values[i] * k_other.trust[i]) /
+				(k.trust[i] + k_other.trust[i])
+			k_other.values[i] = k.values[i]
+			k.trust[i] = k_other.trust[i] = max(k.trust[i], k_other.trust[i])
 		end
+
+		# maybe this becomes an interesting target now
+		maybe_target!(a1, k, l.x, l.y, par)
+		maybe_target!(a2, k_other, l.x, l.y, par)
 	end
 
 	# *** transfer for location a2 knows but a1 doesn't
@@ -331,7 +446,9 @@ end
 # TODO fixed rate over time?
 # TODO initial knowledge
 function handle_departures!(model::Model, par)
-	for i in 1:par.n_dep_per_step
+	p = Poisson(par.rate_dep)
+	n = rand(p)
+	for i in 1:n
 		x = 1
 		entry = rand(1:length(model.world.entries))
 		y = model.world.entries[entry] + rand(-5:5)
@@ -357,6 +474,7 @@ function handle_arrivals!(model::Model, par)
 	# go backwards, so that removal doesn't mess up the index
 	for i in length(model.migrants):-1:1
 		if model.migrants[i].loc.x >= size(model.world.area)[1]
+			agent = model.migrants[i]
 			drop_at!(model.migrants, i)
 			remove_agent!(world, agent)
 		end
