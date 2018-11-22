@@ -4,7 +4,7 @@ using Parameters
 
 @with_kw struct Params
 	# the macro will move the default values into the constructor
-	rand_seed		:: Int		= 123
+	rand_seed		:: Int		= 113
 
 	n_resources 	:: Int 		= 1 
 

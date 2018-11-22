@@ -11,7 +11,7 @@ SDL2.init()
 const panel_size = 1025
 const win_size = 2 * panel_size
 
-win = SDL2.CreateWindow("Hello World!", Int32(0), Int32(0), Int32(win_size), Int32(win_size), 
+win = SDL2.CreateWindow("Routes & Rumours", Int32(0), Int32(0), Int32(win_size), Int32(win_size), 
     UInt32(SDL2.WINDOW_SHOWN))
 SDL2.SetWindowResizable(win,false)
 
