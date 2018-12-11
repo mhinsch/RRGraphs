@@ -1,0 +1,69 @@
+module Pathfinding
+
+export path_Astar, path_costs, path_costs_estimate, each_neighbour
+
+
+using DataStructures
+
+
+
+function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbour)
+	done = Set{typeof(start)}()
+
+	known = PriorityQueue{typeof(start), Float64}()
+	known[start] = path_costs_estimate(start, target)
+
+	previous = Dict{typeof(start), typeof(start)}()
+
+	costs_sofar = Dict(start => 0.0)
+
+	count = 0
+
+	while length(known) > 0
+		current = dequeue!(known)
+		if current == target
+			break
+		end
+
+		push!(done, current)
+
+		for c in each_neighbour(current)
+			if c in done
+				continue
+			end
+
+			count += 1
+
+			costs_thisway = costs_sofar[current] + path_costs(current, c)
+
+			if haskey(costs_sofar, c) && costs_thisway > costs_sofar[c]
+				# no need to explore further since this path is obviously worse
+				continue
+			end
+
+			costs_sofar[c] = costs_thisway
+
+			known[c] = costs_thisway + path_costs_estimate(c, target)
+
+			previous[c] = current
+		end
+	end
+
+	path = Vector{typeof(start)}()
+
+	n = target
+
+	while true
+		push!(path, n)
+		if haskey(previous, n)
+			n = previous[n]
+		else
+			break
+		end
+	end
+
+	path, count
+end	
+
+
+end

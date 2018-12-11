@@ -6,31 +6,14 @@ using Parameters
 	# the macro will move the default values into the constructor
 	rand_seed		:: Int		= 113
 
-	n_resources 	:: Int 		= 1 
-
-	xsize 			:: Int 		= 1025
-	ysize 			:: Int 		= 1025
 	n_cities		:: Int		= 100
 	link_thresh		:: Float64	= 0.2
-	hurst			:: Float64	= 0.5
 
 	n_start_pos 	:: Int 		= 3
 	rate_dep	 	:: Float64	= 0.5
+	n_exits			:: Int		= 5
 
-	# default, city, link
-	friction					= [0.0, 0.2, 0.1]
-	frict_map_range :: Float64 	= 1.0
-	control						= [0.2, 0.8, 0.5]
-	info 						= [0.1, 0.8, 0.5]
-	resources					= [0.0, 0.8, 0.2]
-	opacity						= [0.2, 0.6, 0.2]
-
-	# *** quality 
-	# friction, control, info, resources...
-	weights 		 			= [0.7, 0.5, 0.5, 0.5]
-	weights_target 	 			= [0.1, 0.5, 0.5, 0.5]
-	qual_boring		:: Float64	= 0.3
-	min_target_quality			= 0.5
+	dist_scale					= [1.0, 10.0]
 
 	# *** info exchange
 	# friction, control, info, resources...

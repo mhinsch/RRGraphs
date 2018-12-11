@@ -10,99 +10,13 @@ mutable struct Model
 end
 
 
-# TODO include
-# - effects of certainty vs. attractiveness
-# - plans (?)
-# - transport (?)
-# - local experience (?)
-function quality(agent, dx, dy, k :: Knowledge, boring, par)
-	t = Pos(agent.loc.x + 3, agent.loc.y)
-
-	for pt in agent.targets
-		if reachable(agent, pt)
-			t = pt
-			break
-		end
-	end
-
-	tdx = sign(t.x - agent.loc.x)
-	tdy = sign(t.y - agent.loc.y)
-
-	v = 2.0 + tdx * dx + tdy * dy 
-	if (k == Unknown)
-		# might not remember but still know it
-		return isnan(boring) ? 
-			v + (rand() < 0.1 ? rand() : rand() * 0.1) :
-			par.qual_boring
-	end
-
-	# friction
-	v += (1.0 - k.values[1]) * par.weights[1] * k.trust[1]
-	# control
-	v += (1.0 - k.values[2]) * par.weights[2] * k.trust[2]
-	# info
-	v += k.values[3] * par.weights[3] * k.trust[3]
-
-	# resources
-	for i in 4:length(k.values)
-		v += k.values[i] * par.weights[4] / (i-3) * k.trust[i]
-	end
+function quality(agent, k :: Knowledge, boring, par)
 	
 	v
 end
 
 
-function quality_target(k :: Knowledge, par)
-	if (k == Unknown)
-		return 0
-	end
-
-	v = 0
-
-	# friction
-	v += (1.0 - k.values[1]) * par.weights_target[1] * k.trust[1]
-	# control
-	v += (1.0 - k.values[2]) * par.weights_target[2] * k.trust[2]
-	# info
-	v += k.values[3] * par.weights_target[3] * k.trust[3]
-
-	# resources
-	for i in 4:length(k.values)
-		v += k.values[i] * par.weights_target[4] / (i-3) * k.trust[i]
-	end
-	
-	v
-end
-
-
-# currently very simplistically selects the von Neumann neighbour with the
-# highest quality
-# TODO include transport?
-# TODO include plans?
 function decide_move(agent :: Agent, world::World, par)
-	loc = agent.loc
-	# Moore neighbourhood
-	x1 = max(loc.x-1, 1)
-	x2 = min(loc.x+1, size(world.area)[1])
-	y1 = max(loc.y-1, 1)
-	y2 = min(loc.y+1, size(world.area)[2])
-
-	bestx, besty = 0, 0
-	bestq = -1000.0
-	for x in x1:x2, y in y1:y2
-		q = quality(agent, x-loc.x, y-loc.y, knows_at(agent, x, y), is_boring(agent, x, y), par)
-		if q > bestq
-			bestq = q
-			bestx, besty = x, y
-		end
-	end
-
-	# if there's a best neighbour, go there
-	if bestx > 0
-		return Pos(bestx, besty)
-	else
-		return Pos(0, 0)
-	end
 end
 
 

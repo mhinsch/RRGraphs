@@ -1,6 +1,8 @@
 module Util
 
-export drop!, drop_at!, @set_to_max!, bresenham, PageDict, limit, valley
+
+export drop!, drop_at!, @set_to_max!, bresenham, PageDict, limit, valley, Pathfinding
+
 
 function drop!(cont, elem)
 	for i in eachindex(cont)
@@ -39,6 +41,9 @@ valley(x, bottom, steep, alpha=3) =
 
 
 limit(mi, v, ma) = min(ma, max(v, mi))
+
+
+distance(x1, y1, x2, y2) = sqrt((x1-x2)^2 + (y1-y2)^2)
 
 
 # based on this code:
@@ -100,5 +105,6 @@ end
 
 
 include("page.jl")
+include("Pathfinding.jl")
 
 end
