@@ -6,6 +6,8 @@ export path_Astar, path_costs, path_costs_estimate, each_neighbour
 using DataStructures
 
 
+@generated matches(current, target) = current == target ? :(current == target) : :(current in target)
+
 
 function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbour)
 	done = Set{typeof(start)}()
@@ -21,7 +23,8 @@ function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbo
 
 	while length(known) > 0
 		current = dequeue!(known)
-		if current == target
+
+		if matches(current, target)
 			break
 		end
 

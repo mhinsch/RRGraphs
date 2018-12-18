@@ -28,6 +28,11 @@ macro set_to_max!(a, b)
 end
 
 
+macro update!(fun, args...)
+   esc( :( ($(args...),) = $fun($(args...)) ) )
+end
+
+
 function sigmoid(x, alpha, mid)
 	c = mid/(1.0-mid)
 	x^alpha/(((1.0-x)*c)^alpha + x^alpha)
@@ -102,6 +107,7 @@ function bresenham(f :: Function, x1::Int, y1::Int, x2::Int, y2::Int)
 	end
 
 end
+
 
 
 include("page.jl")

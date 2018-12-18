@@ -41,6 +41,7 @@ function path_costs(l1 :: InfoLocation, l2 :: InfoLocation)
 	-1.0
 end
 
+
 path_costs_estimate(l1 :: InfoLocation, l2 :: InfoLocation) = distance(l1.pos, l2.pos)
 
 

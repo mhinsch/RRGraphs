@@ -2,7 +2,6 @@ using Util
 using Util.PageDict
 
 
-# simple grid coords for now
 struct Pos
 	x :: Float64
 	y :: Float64
@@ -35,26 +34,53 @@ const Unknown = InfoLocation(Nowhere, 0, 0.0, 0.0, 0.0, 0.0, [])
 
 
 mutable struct InfoLink
+	id :: Int
 	l1 :: InfoLocation
 	l2 :: InfoLocation
 	friction :: Float64
 	trust :: Float64
 end
 
+const UnknownLink = InfoLink(0, Unknown, Unknown, 0.0, 0.0)
+
+other(link, loc) = loc == link.l1 ? link.l2 : link.l1
+
 
 # migrants
 mutable struct Agent
 	# current position
 	loc :: Location
+	in_transit :: Bool
 	# what it thinks it knows about the world
-	info :: Vector{InfoLocation}
+	info_loc :: Vector{InfoLocation}
+	info_target :: Vector{InfoLocation}
+	info_link :: Vector{InfoLink}
+	plan :: Vector{InfoLocation}
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
 	contacts :: Vector{Agent}
 end
 
-Agent(l :: Pos, c :: Float64) = Agent(l, InfoLocation[], c, Agent[])
+Agent(l :: Location, c :: Float64) = 
+	Agent(l, true, 
+		InfoLocation[], InfoLocation[], InfoLink[], InfoLocation[], 
+		c, Agent[])
+
+
+# get the agent's info on a location
+knows(agent, l::Location) = agent.info_loc[l.id]
+# get the agent's info on its current location
+knows_current(agent) = knows_at(agent.loc)
+
+# get the agent's info on a link
+knows(agent, l::Link) = agent.info_link[l.id]
+
+target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown
+
+
+learn!(agent, info :: InfoLocation) = agent.info_loc[info.id] = info
+learn!(agent, info :: InfoLink) = agent.info_link[info.id] = info
 
 
 function add_to_contacts!(agent, a)
@@ -66,8 +92,11 @@ function add_to_contacts!(agent, a)
 end
 
 
+@enum LOC_TYPE STD=1 ENTRY EXIT
+
 mutable struct Location
 	id :: Int
+	typ :: LOC_TYPE
 	resources :: Float64
 	quality :: Float64
 	people :: Vector{Agent}
@@ -81,14 +110,15 @@ end
 
 
 # construct empty location
-Location(p :: Pos, i) = Location(i, 0.0, 0.0, Agent[], Link[], p, 0)
-Location() = Location(Nowhere, 0)
+Location(p :: Pos, t, i) = Location(i, t, 0.0, 0.0, Agent[], Link[], p, 0)
+Location() = Location(Nowhere, STD, 0)
 
 
 distance(l1 :: Location, l2 :: Location) = distance(l1.pos, l2.pos)
 
 
 mutable struct Link
+	id :: Int
 	l1 :: Location
 	l2 :: Location
 	friction :: Float64
@@ -101,7 +131,7 @@ Link(l1, l2) = Link(l1, l2, 0, 0)
 mutable struct World
 	cities :: Vector{Location}
 	links :: Vector{Link}
-	entries :: Vector{Float64}
+	entries :: Vector{Location}
 	exits :: Vector{Location}
 end
 
