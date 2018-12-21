@@ -8,7 +8,7 @@ SDL2.GL_SetAttribute(SDL2.GL_MULTISAMPLESAMPLES, 16)
 
 SDL2.init()
 
-const panel_size = 1025
+const panel_size = 800
 const win_size = 2 * panel_size
 
 win = SDL2.CreateWindow("Routes & Rumours", Int32(0), Int32(0), Int32(win_size), Int32(win_size), 
@@ -30,7 +30,7 @@ texture_bl = SDL2.CreateTexture(renderer, SDL2.PIXELFORMAT_ARGB8888, Int32(SDL2.
 pixels_bg = Vector{UInt32}(undef, panel_size*panel_size)
 pixels = Vector{UInt32}(undef, panel_size*panel_size)
 
-push!(LOAD_PATH, "/home/martin/Science/southampton/src/rumours/")
+push!(LOAD_PATH, pwd())
 include("../base/world.jl")
 include("../base/init.jl")
 include("../base/simulation.jl")
@@ -40,7 +40,7 @@ include("../base/params.jl")
 using Random
 
 # const for performance reasons
-const parameters = Params(xsize = panel_size, ysize = panel_size)
+const parameters = Params()
 Random.seed!(parameters.rand_seed)
 
 
@@ -51,12 +51,13 @@ model = Model(world, Agent[], Agent[])
 
 count = 1
 
+fill!(pixels_bg, 0)
 draw_bg!(Canvas(pixels_bg, panel_size), model)
 rect_tl = SDL2.Rect(0, 0, panel_size, panel_size)
 rect_tr = SDL2.Rect(panel_size, 0, panel_size, panel_size)
 rect_bl = SDL2.Rect(0, panel_size, panel_size, panel_size)
 
-while(true)
+while true
 	println(count, " ", length(model.people))
 	count += 1
 
@@ -72,7 +73,7 @@ while(true)
 
 	canvas = Canvas(pixels, panel_size)
 
-	copy!(pixels, pixels_bg)
+	copyto!(pixels, pixels_bg)
 	draw_people!(canvas, model)
 	SDL2.UpdateTexture(texture_tl, C_NULL, pixels, Int32(panel_size * 4))
 

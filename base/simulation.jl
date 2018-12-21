@@ -8,10 +8,6 @@ mutable struct Model
 end
 
 
-function decide_move(agent :: Agent, world::World, par)
-end
-
-
 function simulate!(model :: Model, steps, par)
 	for i in 1:steps
 		step_simulation!(model, par)
@@ -22,27 +18,30 @@ end
 function step_simulation!(model::Model, par)
 	handle_departures!(model, par)
 
-	m = 0
-	mm = 0
 	cap = 0
 	targ = 0
 	mtarg = 0
+	plan = 0
+	mplan = 0
 
+	println()
+	i = 1
 	for a in model.migrants
+		println("agent ", i, ": ")
 		step_agent!(a, model, par)
-		ml = length(a.knowledge)
-		m += ml
-		mm = max(ml, mm)
+		i += 1
 		cap += a.capital
-		targ += length(a.targets)
-		mtarg = max(mtarg, length(a.targets))
+		targ += length(a.info_target)
+		mtarg = max(mtarg, length(a.info_target))
+		plan += length(a.plan)
+		mplan = max(mplan, length(a.plan))
 	end
 
-	m /= length(model.migrants)
 	cap /= length(model.migrants)
 	targ /= length(model.migrants)
+	plan /= length(model.migrants)
 
-	println("mem: ", m, " ", mm, " cap: ", cap, " targets: ", targ, " ", mtarg)
+	println(" cap: ", cap, " targets: ", targ, " ", mtarg, " plan: ", plan, " ", mplan)
 
 	handle_arrivals!(model, par)
 end
@@ -59,6 +58,8 @@ function handle_departures!(model::Model, par)
 		entry = rand(model.world.entries)
 		# starts as in transit => will explore in first step
 		agent = Agent(entry, par.ini_capital)
+		agent.info_loc = fill(Unknown, length(model.world.cities))
+		agent.info_link = fill(UnknownLink, length(model.world.links))
 		add_agent!(entry, agent)
 		push!(model.people, agent)
 		push!(model.migrants, agent)
@@ -74,7 +75,7 @@ function handle_departures!(model::Model, par)
 		# the only bit of initial global info so far
 		for l in model.world.exits
 			if rand() < par.p_know_target
-				receive_info!(agent, l)
+				explore_at!(agent, model.world, l, 0.5, false, par)
 			end
 		end
 	end
@@ -92,4 +93,4 @@ function handle_arrivals!(model::Model, par)
 	end
 end
 
-
+include("simulation_agents.jl")

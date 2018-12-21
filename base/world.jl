@@ -8,14 +8,14 @@ struct Pos
 end
 
 
-distance(p1 :: Pos, p2 :: Pos) = distance(p1.x, p1.y, p2.x, p2.y)
-
-
 const Nowhere = Pos(-1.0, -1.0)
 
 
+distance(p1 :: Pos, p2 :: Pos) = Util.distance(p1.x, p1.y, p2.x, p2.y)
+
+
 # a piece of knowledge an agent has about a location
-mutable struct InfoLocation
+mutable struct InfoLocationT{L}
 	pos :: Pos
 	id :: Int
 	# property values the agent expects
@@ -25,31 +25,39 @@ mutable struct InfoLocation
 	trust_res :: Float64
 	trust_qual :: Float64
 
-	links :: Vector{InfoLink}
-	neighbours :: Vector{InfoLocation}
+	links :: Vector{L}
+	neighbours :: Vector{InfoLocationT{L}}
 end
-
-
-const Unknown = InfoLocation(Nowhere, 0, 0.0, 0.0, 0.0, 0.0, [])
 
 
 mutable struct InfoLink
 	id :: Int
-	l1 :: InfoLocation
-	l2 :: InfoLocation
+	l1 :: InfoLocationT{InfoLink}
+	l2 :: InfoLocationT{InfoLink}
 	friction :: Float64
 	trust :: Float64
 end
 
+
+InfoLocation = InfoLocationT{InfoLink}
+
+
+const Unknown = InfoLocation(Nowhere, 0, 0.0, 0.0, 0.0, 0.0, [], [])
 const UnknownLink = InfoLink(0, Unknown, Unknown, 0.0, 0.0)
 
-other(link, loc) = loc == link.l1 ? link.l2 : link.l1
+
+otherside(link, loc) = loc == link.l1 ? link.l2 : link.l1
+
+# no check for validity etc.
+add_link!(loc, link) = push!(loc.links, link)
+
+add_neighbour!(loc, neigh) = push!(loc.neighbours, neigh)
 
 
 # migrants
 mutable struct Agent
-	# current position
-	loc :: Location
+	# current real position
+	loc
 	in_transit :: Bool
 	# what it thinks it knows about the world
 	info_loc :: Vector{InfoLocation}
@@ -62,25 +70,26 @@ mutable struct Agent
 	contacts :: Vector{Agent}
 end
 
-Agent(l :: Location, c :: Float64) = 
+Agent(l, c :: Float64) = 
 	Agent(l, true, 
 		InfoLocation[], InfoLocation[], InfoLink[], InfoLocation[], 
 		c, Agent[])
 
 
-# get the agent's info on a location
-knows(agent, l::Location) = agent.info_loc[l.id]
-# get the agent's info on its current location
-knows_current(agent) = knows_at(agent.loc)
-
-# get the agent's info on a link
-knows(agent, l::Link) = agent.info_link[l.id]
-
 target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown
 
 
-learn!(agent, info :: InfoLocation) = agent.info_loc[info.id] = info
-learn!(agent, info :: InfoLink) = agent.info_link[info.id] = info
+function learn!(agent, info :: InfoLocation, typ = STD) 
+	agent.info_loc[info.id] = info
+	if typ == EXIT
+		push!(agent.info_target, info)
+	end
+end
+
+function learn!(agent, info :: InfoLink) 
+	agent.info_link[info.id] = info
+end
+	
 
 
 function add_to_contacts!(agent, a)
@@ -94,14 +103,14 @@ end
 
 @enum LOC_TYPE STD=1 ENTRY EXIT
 
-mutable struct Location
+mutable struct LocationT{L}
 	id :: Int
 	typ :: LOC_TYPE
 	resources :: Float64
 	quality :: Float64
 	people :: Vector{Agent}
 
-	links :: Vector{Link}
+	links :: Vector{L}
 
 	pos :: Pos
 
@@ -109,23 +118,47 @@ mutable struct Location
 end
 
 
-# construct empty location
-Location(p :: Pos, t, i) = Location(i, t, 0.0, 0.0, Agent[], Link[], p, 0)
-Location() = Location(Nowhere, STD, 0)
-
-
-distance(l1 :: Location, l2 :: Location) = distance(l1.pos, l2.pos)
+distance(l1, l2) = distance(l1.pos, l2.pos)
 
 
 mutable struct Link
 	id :: Int
-	l1 :: Location
-	l2 :: Location
+	l1 :: LocationT{Link}
+	l2 :: LocationT{Link}
 	friction :: Float64
 	distance :: Float64
+	count :: Int
 end
 
-Link(l1, l2) = Link(l1, l2, 0, 0)
+
+Link(id, l1, l2) = Link(id, l1, l2, 0, 0, 0)
+
+
+LocationT{L}(p :: Pos, t, i) where {L} = LocationT{L}(i, t, 0.0, 0.0, Agent[], L[], p, 0)
+# construct empty location
+#LocationT{L}() where {L} = LocationT{L}(Nowhere, STD, 0)
+
+Location = LocationT{Link}
+
+
+# get the agent's info on a location
+knows(agent, l::Location) = agent.info_loc[l.id]
+# get the agent's info on its current location
+knows_current(agent) = knows(agent, agent.loc)
+
+# get the agent's info on a link
+knows(agent, l::Link) = agent.info_link[l.id]
+
+
+function find_link(from, to)
+	for l in from.links
+		if otherside(l, from) == to
+			return l
+		end
+	end
+
+	nothing
+end
 
 
 mutable struct World

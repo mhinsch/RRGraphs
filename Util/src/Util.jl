@@ -1,7 +1,7 @@
 module Util
 
 
-export drop!, drop_at!, @set_to_max!, bresenham, PageDict, limit, valley, Pathfinding
+export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, distance, Pathfinding
 
 
 function drop!(cont, elem)
@@ -54,6 +54,8 @@ distance(x1, y1, x2, y2) = sqrt((x1-x2)^2 + (y1-y2)^2)
 # based on this code:
 # https://stackoverflow.com/questions/40273880/draw-a-line-between-two-pixels-on-a-grayscale-image-in-julia
 function bresenham(f :: Function, x1::Int, y1::Int, x2::Int, y2::Int)
+	#println("b: ", x1, ", ", y1)
+	#println("b: ", x2, ", ", y2)
 	# Calculate distances
 	dx = x2 - x1
 	dy = y2 - y1
@@ -67,12 +69,10 @@ function bresenham(f :: Function, x1::Int, y1::Int, x2::Int, y2::Int)
 		x2, y2 = y2, x2
 	end
 
-	# Swap start and end points if necessary and store swap state
-	swapped = false
+	# Swap start and end points if necessary 
 	if x1 > x2
 		x1, x2 = x2, x1
 		y1, y2 = y2, y1
-		swapped = true
 	end
 	# Recalculate differentials
 	dx = x2 - x1
@@ -89,7 +89,7 @@ function bresenham(f :: Function, x1::Int, y1::Int, x2::Int, y2::Int)
 
 	# Iterate over bounding box generating points between start and end
 	y = y1
-	for x in x1:(x2+1)
+	for x in x1:x2
 		if is_steep == true
 			coord = (y, x)
 		else

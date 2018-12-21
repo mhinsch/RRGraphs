@@ -21,10 +21,15 @@ function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbo
 
 	count = 0
 
+	current = start
+	found = false
+
 	while length(known) > 0
+		print("*")
 		current = dequeue!(known)
 
 		if matches(current, target)
+			found = true
 			break
 		end
 
@@ -52,9 +57,15 @@ function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbo
 		end
 	end
 
+	println()
+
 	path = Vector{typeof(start)}()
 
-	n = target
+	if ! found
+		return path, count
+	end
+
+	n = current # == found target
 
 	while true
 		push!(path, n)
