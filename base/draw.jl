@@ -77,7 +77,9 @@ end
 function draw_bg!(canvas, model)
 	w = model.world
 
-	for link in model.world.links
+	# draw in reverse so that "by foot" links will be drawn first
+	for i in length(model.world.links):-1:1
+		link = model.world.links[i]
 		frict = link.friction / link.distance / 10.1
 		draw_link!(canvas, link, frict)
 	end

@@ -9,6 +9,8 @@
 
 * discovered by-foot links should have different defaults than generic links
 
+* agents using direct "by-foot" paths arrive earlier and might therefore swamp info-space
+
 
 * profile
 

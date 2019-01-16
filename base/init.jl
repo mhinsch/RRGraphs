@@ -46,7 +46,9 @@ function add_entries!(world, par)
 		push!(world.entries, Location(Pos(x, y), ENTRY, length(world.cities)+1))
 		# exits are linked to every city (but badly)
 		for c in world.cities
-			add_link!(world, c, world.entries[end], 2, par)
+			if c.pos.x < par.entry_dist
+				add_link!(world, c, world.entries[end], 2, par)
+			end
 		end
 		push!(world.cities, world.entries[end])
 		print(length(world.cities), " ")
@@ -63,7 +65,9 @@ function add_exits!(world, par)
 		push!(world.exits, Location(Pos(x, y), EXIT, length(world.cities)+1))
 		# exits are linked to every city (but badly)
 		for c in world.cities
-			add_link!(world, c, world.exits[end], 2, par)
+			if c.pos.x > par.exit_dist
+				add_link!(world, c, world.exits[end], 2, par)
+			end
 		end
 		push!(world.cities, world.exits[end])
 		print(length(world.cities), " ")

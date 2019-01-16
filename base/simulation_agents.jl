@@ -12,9 +12,7 @@ end
 
 
 function quality(link :: InfoLink, loc :: InfoLocation, par)
-	loc.quality*loc.trust_res + loc.pos.x*par.qual_weight_x + 
-		loc.resources*loc.trust_res*par.qual_weight_trust -
-		link.friction*par.qual_weight_frict 
+	quality(loc, par) / (1 + link.friction*par.qual_weight_frict)
 end
 
 function quality(loc :: InfoLocation, par)
@@ -42,19 +40,18 @@ function plan!(agent, par)
 
 	loc = knows_current(agent)
 
-	qual = quality(loc, par)
-	best = 0
+	quals = fill(0.0, length(loc.links)+1)
+	quals[1] = quality(loc, par)
 
 	for i in eachindex(loc.links)
 		q = quality(loc.links[i], otherside(loc.links[i], loc), par)
-		#q = quality(otherside(loc.links[i], loc), par)
 		@assert !isnan(q)
-		if q > qual
-			print(".")
-			qual = q
-			best = i
-		end
+		quals[i+1] = quals[i] + q
 	end
+
+	r = rand() * quals[end]
+	# -1 because first el is stay
+	best = findfirst(x -> x>r, quals) - 1
 
 	# can't find a better option, stay
 	if best == 0
@@ -91,18 +88,18 @@ end
 
 function step_agent_move!(agent, world, par)
 	agent.in_transit = true
-	print("a : ", agent.loc.id, " p: ") 
-	for p in agent.plan
-		print(p.id, " ")
-	end
-	print(" || ")
+	#print("a : ", agent.loc.id, " p: ") 
+	#for p in agent.plan
+#		print(p.id, " ")
+#	end
+#	print(" || ")
 
 	loc = decide_move(agent, world, par)
 
 	link = find_link(agent.loc, loc)
 	link.count += 1
 
-	println("a: ", agent.loc.id, " -> ", loc.id) 
+#	println("a: ", agent.loc.id, " -> ", loc.id) 
 
 	costs_move!(agent, link, par)
 	explore_move!(agent, world, loc, par)
