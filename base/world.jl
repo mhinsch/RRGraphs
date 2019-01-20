@@ -78,21 +78,23 @@ Agent(l, c :: Float64) =
 
 target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown
 
+arrived(agent) = agent.loc.typ == EXIT
 
-function learn!(agent, info :: InfoLocation, typ = STD) 
+
+function add_info!(agent, info :: InfoLocation, typ = STD) 
 	agent.info_loc[info.id] = info
 	if typ == EXIT
 		push!(agent.info_target, info)
 	end
 end
 
-function learn!(agent, info :: InfoLink) 
+function add_info!(agent, info :: InfoLink) 
 	agent.info_link[info.id] = info
 end
 	
 
 
-function add_to_contacts!(agent, a)
+function add_contact!(agent, a)
 	if a in agent.contacts
 		return
 	end
@@ -121,8 +123,11 @@ end
 distance(l1, l2) = distance(l1.pos, l2.pos)
 
 
+@enum LINK_TYPE FAST=1 SLOW
+
 mutable struct Link
 	id :: Int
+	typ :: LINK_TYPE
 	l1 :: LocationT{Link}
 	l2 :: LocationT{Link}
 	friction :: Float64
@@ -131,7 +136,7 @@ mutable struct Link
 end
 
 
-Link(id, l1, l2) = Link(id, l1, l2, 0, 0, 0)
+Link(id, t, l1, l2) = Link(id, t, l1, l2, 0, 0, 0)
 
 
 LocationT{L}(p :: Pos, t, i) where {L} = LocationT{L}(i, t, 0.0, 0.0, Agent[], L[], p, 0)
@@ -142,13 +147,16 @@ Location = LocationT{Link}
 
 
 # get the agent's info on a location
-knows(agent, l::Location) = agent.info_loc[l.id]
+info(agent, l::Location) = agent.info_loc[l.id]
 # get the agent's info on its current location
-knows_current(agent) = knows(agent, agent.loc)
-
+info_current(agent) = info(agent, agent.loc)
 # get the agent's info on a link
-knows(agent, l::Link) = agent.info_link[l.id]
+info(agent, l::Link) = agent.info_link[l.id]
 
+# get the agent's info on a location
+knows(agent, l::Location) = info(agent, l) != Unknown
+# get the agent's info on a link
+knows(agent, l::Link) = info(agent, l) != UnknownLink
 
 function find_link(from, to)
 	for l in from.links

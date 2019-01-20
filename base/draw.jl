@@ -36,9 +36,9 @@ const WHITE = 0xFFFFFFFF
 function draw_people!(canvas, model)
 	xs, ys = size(canvas)
 	for p in model.migrants
-		x = scale(p.loc.pos.x, xs) + rand(-2:2)
+		x = scale(p.loc.pos.x, xs) + rand(-5:5)
 		x = limit(1, x, xs)
-		y = scale(p.loc.pos.y, ys) + rand(-2:2)
+		y = scale(p.loc.pos.y, ys) + rand(-5:5)
 		y = limit(1, y, ys)
 		put(canvas, x, y, WHITE)
 	end
@@ -93,8 +93,19 @@ end
 function draw_visitors!(canvas, model)
 	w = model.world
 
+	sum = 0
+	ma = 0
 	for link in model.world.links
-		val = min(link.count / 100, 1.0)
+		sum += link.count
+		ma = max(ma, link.count)
+	end
+
+	if ma == 0
+		ma = 1
+	end
+
+	for link in model.world.links
+		val = link.count / ma
 		draw_link!(canvas, link, 0.5 - val/2)
 	end
 

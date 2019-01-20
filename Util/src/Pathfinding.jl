@@ -25,7 +25,7 @@ function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbo
 	found = false
 
 	while length(known) > 0
-		print("*")
+		#print("*")
 		current = dequeue!(known)
 
 		if matches(current, target)
@@ -57,7 +57,7 @@ function path_Astar(start, target, path_costs, path_costs_estimate, each_neighbo
 		end
 	end
 
-	println()
+	#println()
 
 	path = Vector{typeof(start)}()
 

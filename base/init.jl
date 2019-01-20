@@ -9,17 +9,31 @@ function setup_city!(loc, par)
 end
 
 
-function setup_link!(link, typ, par)
+function setup_entry!(loc, par)
+	loc.quality = par.qual_entry
+	loc.resources = par.res_entry
+end
+
+
+function setup_exit!(loc, par)
+	loc.quality = par.qual_exit
+	loc.resources = par.res_exit
+end
+
+
+function setup_link!(link, par)
 	link.distance = distance(link.l1, link.l2)
-	link.friction = link.distance * par.dist_scale[typ]
+	link.friction = 
+		link.distance * (1.0 - par.frict_range + rand() * par.frict_range) * 
+		par.dist_scale[Int(link.typ)]
 end
 
 
 function add_link!(world, c1, c2, typ, par)
-	push!(world.links, Link(length(world.links)+1, c1, c2))
+	push!(world.links, Link(length(world.links)+1, typ, c1, c2))
 	push!(c1.links, world.links[end])
 	push!(c2.links, world.links[end])
-	setup_link!(world.links[end], typ, par)
+	setup_link!(world.links[end], par)
 end
 
 
@@ -33,7 +47,7 @@ function add_cities!(world, par)
 	end
 
 	for (i, j) in links
-		add_link!(world, world.cities[i], world.cities[j], 1, par)
+		add_link!(world, world.cities[i], world.cities[j], FAST, par)
 	end
 end
 
@@ -44,10 +58,11 @@ function add_entries!(world, par)
 		y = rand()
 		x = 0
 		push!(world.entries, Location(Pos(x, y), ENTRY, length(world.cities)+1))
+		setup_entry!(world.entries[end], par)
 		# exits are linked to every city (but badly)
 		for c in world.cities
-			if c.pos.x < par.entry_dist
-				add_link!(world, c, world.entries[end], 2, par)
+			if c.typ != ENTRY && c.pos.x < par.entry_dist
+				add_link!(world, c, world.entries[end], SLOW, par)
 			end
 		end
 		push!(world.cities, world.entries[end])
@@ -63,10 +78,11 @@ function add_exits!(world, par)
 		y = rand()
 		x = 0.99 
 		push!(world.exits, Location(Pos(x, y), EXIT, length(world.cities)+1))
+		setup_exit!(world.exits[end], par)
 		# exits are linked to every city (but badly)
 		for c in world.cities
-			if c.pos.x > par.exit_dist
-				add_link!(world, c, world.exits[end], 2, par)
+			if c.typ != EXIT && c.pos.x > par.exit_dist
+				add_link!(world, c, world.exits[end], SLOW, par)
 			end
 		end
 		push!(world.cities, world.exits[end])

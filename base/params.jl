@@ -13,10 +13,15 @@ using Parameters
 	rate_dep	 	:: Float64	= 20
 	n_exits			:: Int		= 5
 	n_entries		:: Int		= 3
-	exit_dist		:: Float64	= 0.7
-	entry_dist		:: Float64	= 0.3
+	exit_dist		:: Float64	= 0.9
+	entry_dist		:: Float64	= 0.1
+	qual_entry		:: Float64	= 0.0
+	res_entry		:: Float64	= 0.0
+	qual_exit		:: Float64	= 1
+	res_exit		:: Float64	= 1
 
 	dist_scale					= [1.0, 10.0]
+	frict_range		:: Float64	= 0.2
 
 	n_ini_contacts	:: Int		= 10
 	ini_capital 	:: Float64 	= 2000.0
@@ -24,7 +29,7 @@ using Parameters
 
 	res_exp			:: Float64	= 0.5
 	qual_exp		:: Float64	= 0.5
-	frict_exp		:: Float64	= 0.5
+	frict_exp					= [100, 1000]
 	move_learn		:: Float64	= 0.3
 	p_find_links	:: Float64	= 0.5
 	trust_found_links :: Float64 = 0.5
@@ -39,10 +44,11 @@ using Parameters
 	qual_weight_trust :: Float64 = 0.1
 	qual_weight_frict :: Float64 = 0.01
 
-	p_keep_contact 	:: Float64 	= 0.5
+	p_keep_contact 	:: Float64 	= 0.3
 	p_info_mingle	:: Float64	= 0.3
 	p_info_contacts	:: Float64	= 0.2
 	p_transfer_info	:: Float64	= 0.3
+	n_contacts_max	:: Int		= 50
 
 end
 

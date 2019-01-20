@@ -12,7 +12,7 @@ end
 
 
 function quality(link :: InfoLink, loc :: InfoLocation, par)
-	quality(loc, par) / (1 + link.friction*par.qual_weight_frict)
+	quality(loc, par) / (1.0 + link.friction*par.qual_weight_frict)
 end
 
 function quality(loc :: InfoLocation, par)
@@ -20,25 +20,36 @@ function quality(loc :: InfoLocation, par)
 		loc.resources*loc.trust_res*par.qual_weight_trust
 end
 
+# TODO properties of waystations
+function quality(plan :: Vector{InfoLocation}, par)
+	if length(plan) == 2
+		return quality(find_link(plan[2], plan[1]), plan[1], par)
+	end
+
+	# start out with quality of target
+	q = quality(plan[1],  par)
+
+	f = 0.0
+	for i in 1:length(plan)-1
+		f += find_link(plan[i], plan[i+1]).friction
+	end
+
+	q / (1.0 + f * par.qual_weight_frict)
+end
+
 
 function plan!(agent, par)
 	if agent.info_target == []
 		agent.plan = []
 	else
-		agent.plan, count = Pathfinding.path_Astar(knows_current(agent), agent.info_target, 
+		agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
 			path_costs, path_costs_estimate, each_neighbour)
 	end
 
-	qual_plan = 0.0
-
-	# we have a plan!
-	if agent.plan != []
-		return agent
-	end
-
 	# no plan, try to find better position at least
+	# chose random location with prob prop. to quality
 
-	loc = knows_current(agent)
+	loc = info_current(agent)
 
 	quals = fill(0.0, length(loc.links)+1)
 	quals[1] = quality(loc, par)
@@ -49,15 +60,22 @@ function plan!(agent, par)
 		quals[i+1] = quals[i] + q
 	end
 
-	r = rand() * quals[end]
+	# plan goes into the choice as well
+	if agent.plan != []
+		push!(quals, quality(agent.plan, par) + quals[end])
+	end
+
+	r = rand() * (quals[end] - 0.0001)
 	# -1 because first el is stay
 	best = findfirst(x -> x>r, quals) - 1
 
-	# can't find a better option, stay
-	if best == 0
+	# either stay or use planned path
+	if best == 0 ||
+		(best == length(quals) - 1 && agent.plan != [])
 		return agent
 	end
 
+	# go to a neighbouring location 
 	agent.plan = [otherside(loc.links[best], loc), loc]
 
 	agent
@@ -88,11 +106,6 @@ end
 
 function step_agent_move!(agent, world, par)
 	agent.in_transit = true
-	#print("a : ", agent.loc.id, " p: ") 
-	#for p in agent.plan
-#		print(p.id, " ")
-#	end
-#	print(" || ")
 
 	loc = decide_move(agent, world, par)
 
@@ -126,17 +139,17 @@ end
 # explore while moving one step
 function explore_move!(agent, world, dest, par)
 	info_loc2 :: InfoLocation, l = explore_at!(agent, world, dest, 0.5, false, par)
-	info_loc1 :: InfoLocation = knows_current(agent)
+	info_loc1 :: InfoLocation = info_current(agent)
 
 	link = find_link(agent.loc, dest)
-	info = knows(agent, link)
-	if info == UnknownLink
+	inf = info(agent, link)
+	if inf == UnknownLink
 		# TODO stochastic error
-		info = discover!(agent, link, agent.loc, par)
-		info.friction = link.friction
-		info.trust = par.trust_travelled
+		inf = discover!(agent, link, agent.loc, par)
 	end
-	# TODO adjust friction, trust if link known?
+
+	inf.friction = link.friction
+	inf.trust = par.trust_travelled
 
 	agent
 end
@@ -185,39 +198,39 @@ end
 # connect to existing links
 function discover!(agent, loc :: Location, par)
 	# agents start off with expected values
-	info = InfoLocation(loc.pos, loc.id, par.res_exp, par.qual_exp, 0.0, 0.0, [], [])
+	inf = InfoLocation(loc.pos, loc.id, par.res_exp, par.qual_exp, 0.0, 0.0, [], [])
 	# add location info to agent
-	learn!(agent, info, loc.typ)
+	add_info!(agent, inf, loc.typ)
 	# connect existing link infos
 	for link in loc.links
-		info_link = knows(agent, link)
+		info_link = info(agent, link)
 
 		# links to exit are always known
 		if info_link == UnknownLink
 			if loc.typ != EXIT
 				lo = otherside(link, loc)
-				if lo.typ == EXIT && knows(agent, lo) != Unknown
+				if lo.typ == EXIT && info(agent, lo) != Unknown
 					discover!(agent, link, loc, par)
 				end
 			end
 		# connect known links
 		else				
-			connect!(info, info_link)
+			connect!(inf, info_link)
 		end
 	end
 
-	info	
+	inf	
 end	
 
 
 # add new link to agent
 # connect to existing location
 function discover!(agent, link :: Link, from :: Location, par)
-	info_from = knows(agent, from)
+	info_from = info(agent, from)
 	@assert info_from != Unknown
-	info_to = knows(agent, otherside(link, from))
-	info_link = InfoLink(link.id, info_from, info_to, par.frict_exp, 0.0)
-	learn!(agent, info_link)
+	info_to = info(agent, otherside(link, from))
+	info_link = InfoLink(link.id, info_from, info_to, par.frict_exp[Int(link.typ)], 0.0)
+	add_info!(agent, info_link)
 	# TODO lots of redundancy, possibly join/extend
 	connect!(info_from, info_link)
 	if info_to != Unknown
@@ -228,33 +241,56 @@ function discover!(agent, link :: Link, from :: Location, par)
 end
 
 
+# add new link as a copy from existing one (from other agent)
+# currently requires that both endpoints are known
+function maybe_learn!(agent, link_orig :: InfoLink)
+	# get corresponding loc info from naive individual
+	l1_info = agent.info_loc[link_orig.l1.id] 
+	l2_info = agent.info_loc[link_orig.l2.id] 
+
+	# check if the agent knows both end points, otherwise abort
+	if l1_info == Unknown || l2_info == Unknown
+		return UnknownLink	
+	end
+
+	info_link = InfoLink(link_orig.id, l1_info, l2_info, link_orig.friction, link_orig.trust)
+	add_info!(agent, info_link)
+	connect!(l1_info, info_link)
+	connect!(l2_info, info_link)
+
+	info_link
+end
+
+
 function explore_at!(agent, world, loc :: Location, speed, indirect, par)
 	# knowledge
-	info = knows(agent, loc)
+	inf = info(agent, loc)
 	
-	if info == Unknown
-		info = discover!(agent, loc, par)
+	if inf == Unknown
+		inf = discover!(agent, loc, par)
 	end
 
 	# gain information on local properties
 	# stochasticity?
-	info.resources += (loc.resources - info.resources) * speed
-	info.trust_res += (1.0 - info.trust_res) * speed
+	inf.resources += (loc.resources - inf.resources) * speed
+	inf.trust_res += (1.0 - inf.trust_res) * speed
 
-	info.quality += (loc.quality - info.quality) * speed
-	info.trust_qual += (1.0 - info.trust_qual) * speed
+	inf.quality += (loc.quality - inf.quality) * speed
+	inf.trust_qual += (1.0 - inf.trust_qual) * speed
 
 	# only location, no links
 	if ! indirect
-		return info, loc
+		return inf, loc
 	end
 	# gain info on links and linked locations
 	
 	for link in loc.links
-		info_link = knows(agent, link)
+		info_link = info(agent, link)
 
 		if info_link == UnknownLink && rand() < par.p_find_links
 			info_link = discover!(agent, link, loc, par)
+
+			# TODO imperfect knowledge
 
 			info_link.friction = link.friction
 			info_link.trust = par.trust_found_links
@@ -269,7 +305,7 @@ function explore_at!(agent, world, loc :: Location, speed, indirect, par)
 		end
 	end
 
-	info, loc
+	inf, loc
 end
 
 
@@ -283,8 +319,12 @@ function mingle!(agent, location, world, par)
 
 		# agents keep in contact
 		if rand() < par.p_keep_contact
-			add_to_contacts!(agent, a)
-			add_to_contacts!(a, agent)
+			if (length(agent.contacts)) < par.n_contacts_max
+				add_contact!(agent, a)
+			end
+			if (length(a.contacts)) < par.n_contacts_max
+				add_contact!(a, agent)
+			end
 		end
 		
 		if rand() < par.p_info_mingle
@@ -302,6 +342,8 @@ function transfer(val1, trust1, val2, trust2)
 	val1, trust1, val2, trust2
 end
 
+
+# TODO arrived agents don't update their info
 
 function exchange_info!(a1, a2, world, par)
 
@@ -338,26 +380,28 @@ function exchange_info!(a1, a2, world, par)
 		info2 = a2.info_link[l]
 
 		# neither agent knows anything
-		if info1 == Unknown && info2 == Unknown
+		if info1 == UnknownLink && info2 == UnknownLink
 			continue
 		end
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
-		if info1 != Unknown && info2 != Unknown
+		if info1 != UnknownLink && info2 != UnknownLink
 			@update! transfer info1.friction info1.trust info2.friction info2.trust 
 			continue
 		end
 
-		# TODO this is slightly tricky since currently agents aren't supposed to know a link
-		# without knowing at least 1 endpoint
+		# only one agent knows the link
+
+		if info1 == UnknownLink
+			maybe_learn!(a1, info2)
+		else
+			maybe_learn!(a2, info1)
+		end
+
+		# TODO 
 		# - stochasticity
 		# - incomplete transfer
-		#link = world.links[l]
-		#if info2 == Unknown 
-		#	discover!(a2, link, par)
-		#else # info1 == Unknown
-		#	discover!(a1, link, par)
-		#end
+
 	end
 end
 

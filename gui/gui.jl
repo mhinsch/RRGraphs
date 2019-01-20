@@ -58,7 +58,7 @@ rect_tr = SDL2.Rect(panel_size, 0, panel_size, panel_size)
 rect_bl = SDL2.Rect(0, panel_size, panel_size, panel_size)
 
 while true
-	println(count, " ", length(model.people))
+	println(count, " #migrants: ", length(model.migrants), " #arrived: ", length(model.people) - length(model.migrants))
 	count += 1
 
 	ev = SDL2.event()

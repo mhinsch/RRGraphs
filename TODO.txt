@@ -2,14 +2,9 @@
 	use functors storing pars, agent
 	adapt to vary dependent on agent situation
 
-* topology of known graphs looks weird (lots of unrooted end bits)
-	check if that's from received info or if there's an indexing issue somewhere
-
 * implement general consistency check (links - nodes)
 
-* discovered by-foot links should have different defaults than generic links
-
-* agents using direct "by-foot" paths arrive earlier and might therefore swamp info-space
+* inspection GUI
 
 
 * profile
