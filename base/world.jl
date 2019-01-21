@@ -14,36 +14,51 @@ const Nowhere = Pos(-1.0, -1.0)
 distance(p1 :: Pos, p2 :: Pos) = Util.distance(p1.x, p1.y, p2.x, p2.y)
 
 
+struct Trusted{T}
+	value :: T
+	trust :: Float64
+end
+
+TrustedF = Trusted{Float64}
+
+
+discounted(t :: Trusted{T}) where {T} = t. value * t.trust
+
+
+update(t :: TrustedF, val, speed) = average(t, TrustedF(val, 1.0), 1-speed)
+
+average(val :: TrustedF, target :: TrustedF, weight = 0.5) =
+	TrustedF(val.value * weight + target.value * (1 - weight), val.trust * weight + target.trust * (1 - weight))
+
+
 # a piece of knowledge an agent has about a location
 mutable struct InfoLocationT{L}
 	pos :: Pos
 	id :: Int
 	# property values the agent expects
-	resources :: Float64
-	quality :: Float64
-	# how certain it thinks they are
-	trust_res :: Float64
-	trust_qual :: Float64
+	resources :: TrustedF
+	quality :: TrustedF
 
 	links :: Vector{L}
 	neighbours :: Vector{InfoLocationT{L}}
 end
 
-
 mutable struct InfoLink
 	id :: Int
 	l1 :: InfoLocationT{InfoLink}
 	l2 :: InfoLocationT{InfoLink}
-	friction :: Float64
-	trust :: Float64
+	friction :: TrustedF
 end
-
 
 InfoLocation = InfoLocationT{InfoLink}
 
+const Unknown = InfoLocation(Nowhere, 0, TrustedF(0.0, 0.0), TrustedF(0.0, 0.0), [], [])
+const UnknownLink = InfoLink(0, Unknown, Unknown, TrustedF(0.0, 0.0))
 
-const Unknown = InfoLocation(Nowhere, 0, 0.0, 0.0, 0.0, 0.0, [], [])
-const UnknownLink = InfoLink(0, Unknown, Unknown, 0.0, 0.0)
+
+resources(l :: InfoLocation) = l.resources.value
+quality(l :: InfoLocation) = l.quality.value
+friction(l :: InfoLink) = l.friction.value
 
 
 otherside(link, loc) = loc == link.l1 ? link.l2 : link.l1

@@ -12,12 +12,12 @@ end
 
 
 function quality(link :: InfoLink, loc :: InfoLocation, par)
-	quality(loc, par) / (1.0 + link.friction*par.qual_weight_frict)
+	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
 end
 
 function quality(loc :: InfoLocation, par)
-	loc.quality*loc.trust_res + loc.pos.x*par.qual_weight_x + 
-		loc.resources*loc.trust_res*par.qual_weight_trust
+	discounted(loc.quality) + loc.pos.x*par.qual_weight_x + 
+		discounted(loc.resources)*par.qual_weight_trust
 end
 
 # TODO properties of waystations
@@ -31,7 +31,7 @@ function quality(plan :: Vector{InfoLocation}, par)
 
 	f = 0.0
 	for i in 1:length(plan)-1
-		f += find_link(plan[i], plan[i+1]).friction
+		f += find_link(plan[i], plan[i+1]).friction.value
 	end
 
 	q / (1.0 + f * par.qual_weight_frict)
@@ -148,8 +148,7 @@ function explore_move!(agent, world, dest, par)
 		inf = discover!(agent, link, agent.loc, par)
 	end
 
-	inf.friction = link.friction
-	inf.trust = par.trust_travelled
+	inf.friction = TrustedF(link.friction, par.trust_travelled)
 
 	agent
 end
@@ -194,11 +193,11 @@ function connect!(loc :: InfoLocation, link :: InfoLink)
 end
 
 
-# add new location to agent
+# add new location to agent (based on world info)
 # connect to existing links
 function discover!(agent, loc :: Location, par)
 	# agents start off with expected values
-	inf = InfoLocation(loc.pos, loc.id, par.res_exp, par.qual_exp, 0.0, 0.0, [], [])
+	inf = InfoLocation(loc.pos, loc.id, TrustedF(par.res_exp, 0.0), TrustedF(par.qual_exp, 0.0), [], [])
 	# add location info to agent
 	add_info!(agent, inf, loc.typ)
 	# connect existing link infos
@@ -223,13 +222,13 @@ function discover!(agent, loc :: Location, par)
 end	
 
 
-# add new link to agent
+# add new link to agent (based on world info)
 # connect to existing location
 function discover!(agent, link :: Link, from :: Location, par)
 	info_from = info(agent, from)
 	@assert info_from != Unknown
 	info_to = info(agent, otherside(link, from))
-	info_link = InfoLink(link.id, info_from, info_to, par.frict_exp[Int(link.typ)], 0.0)
+	info_link = InfoLink(link.id, info_from, info_to, TrustedF(par.frict_exp[Int(link.typ)], 0.0))
 	add_info!(agent, info_link)
 	# TODO lots of redundancy, possibly join/extend
 	connect!(info_from, info_link)
@@ -253,7 +252,7 @@ function maybe_learn!(agent, link_orig :: InfoLink)
 		return UnknownLink	
 	end
 
-	info_link = InfoLink(link_orig.id, l1_info, l2_info, link_orig.friction, link_orig.trust)
+	info_link = InfoLink(link_orig.id, l1_info, l2_info, link_orig.friction)
 	add_info!(agent, info_link)
 	connect!(l1_info, info_link)
 	connect!(l2_info, info_link)
@@ -262,7 +261,7 @@ function maybe_learn!(agent, link_orig :: InfoLink)
 end
 
 
-function explore_at!(agent, world, loc :: Location, speed, indirect, par)
+function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 	# knowledge
 	inf = info(agent, loc)
 	
@@ -272,14 +271,11 @@ function explore_at!(agent, world, loc :: Location, speed, indirect, par)
 
 	# gain information on local properties
 	# stochasticity?
-	inf.resources += (loc.resources - inf.resources) * speed
-	inf.trust_res += (1.0 - inf.trust_res) * speed
-
-	inf.quality += (loc.quality - inf.quality) * speed
-	inf.trust_qual += (1.0 - inf.trust_qual) * speed
+	inf.resources = update(inf.resources, loc.resources, speed)
+	inf.quality = update(inf.quality, loc.quality, speed)
 
 	# only location, no links
-	if ! indirect
+	if ! allow_indirect
 		return inf, loc
 	end
 	# gain info on links and linked locations
@@ -292,8 +288,7 @@ function explore_at!(agent, world, loc :: Location, speed, indirect, par)
 
 			# TODO imperfect knowledge
 
-			info_link.friction = link.friction
-			info_link.trust = par.trust_found_links
+			info_link.friction = TrustedF(link.friction, par.trust_found_links)
 			
 			# no info, but position is known
 			explore_at!(agent, world, otherside(link, loc), 0.0, false, par)
@@ -333,19 +328,21 @@ function mingle!(agent, location, world, par)
 	end
 end
 
-function transfer(val1, trust1, val2, trust2)
-	t = max(trust1 + trust2, 0.0001)
-	val1 = (val1 * trust1 + val2 * trust2) / t
-	val2 = val1
-	trust1 = trust2 = max(trust1, trust2)
+function consensus(val1, val2)
+	sum_t = max(val1.trust + val2.trust, 0.0001)
+	v = (discounted(val1) + discounted(val2)) / sum_t
+	t = max(val1.trust, val2.trust)
 
-	val1, trust1, val2, trust2
+	TrustedF(v, t)
 end
 
 
 # TODO arrived agents don't update their info
 
 function exchange_info!(a1, a2, world, par)
+
+	# a1 can never have arrived yet
+	arr = arrived(a2)
 
 	for l in eachindex(a1.info_loc)
 		
@@ -359,8 +356,12 @@ function exchange_info!(a1, a2, world, par)
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if info1 != Unknown && info2 != Unknown
-			@update! transfer info1.resources info1.trust_res info2.resources info2.trust_res
-			@update! transfer info1.quality info1.trust_qual info2.quality info2.trust_qual
+			res_cons = consensus(info1.resources, info2.resources)
+			info1.resources = res_cons
+			info2.resources = arr ? average(info2.resources, res_cons) : res_cons
+			qual_cons = consensus(info1.quality, info2.quality)
+			info1.quality = qual_cons
+			info2.quality = arr ? average(info2.quality, qual_cons) : qual_cons
 			continue
 		end
 
@@ -386,7 +387,9 @@ function exchange_info!(a1, a2, world, par)
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if info1 != UnknownLink && info2 != UnknownLink
-			@update! transfer info1.friction info1.trust info2.friction info2.trust 
+			frict_cons = consensus(info1.friction, info2.friction)
+			info1.friction = frict_cons
+			info2.friction = arr ? average(info2.friction, frict_cons) : frict_cons
 			continue
 		end
 

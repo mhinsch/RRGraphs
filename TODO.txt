@@ -1,18 +1,7 @@
-* sync costs used in path finding and quality
-	use functors storing pars, agent
-	adapt to vary dependent on agent situation
-
-* implement general consistency check (links - nodes)
-
-* inspection GUI
-
-
 * profile
 
 * check type stability
 
-
-* let agents exchange info about unconnected links?
 
 * info exchange by interestingness/relevance?
 

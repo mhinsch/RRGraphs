@@ -27,7 +27,7 @@ function path_costs(l1 :: InfoLocation, l2 :: InfoLocation)
 	for i in eachindex(l1.neighbours)
 		n = l1.neighbours[i]
 		if n == l2
-			return l1.links[i].friction
+			return l1.links[i].friction.value
 		end
 	end
 
