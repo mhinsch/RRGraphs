@@ -13,7 +13,7 @@ using Parameters
 	rate_dep	 	:: Float64	= 20
 	n_exits			:: Int		= 5
 	n_entries		:: Int		= 3
-	exit_dist		:: Float64	= 0.9
+	exit_dist		:: Float64	= 0.3
 	entry_dist		:: Float64	= 0.1
 	qual_entry		:: Float64	= 0.0
 	res_entry		:: Float64	= 0.0

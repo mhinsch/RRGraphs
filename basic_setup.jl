@@ -10,6 +10,6 @@ p = Params()
 
 Random.seed!(p.rand_seed)
 
-w = create_world(p)
-m = Model(w, Agent[], Agent[])
+const w = create_world(p);
+const m = Model(w, Agent[], Agent[]);
 

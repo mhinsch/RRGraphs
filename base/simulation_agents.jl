@@ -82,7 +82,7 @@ function plan!(agent, par)
 end
 
 
-function step_agent!(agent :: Agent, model::Model, par)
+function step_agent!(agent::Agent, model::Model, par)
 	if decide_stay(agent, par)
 		step_agent_stay!(agent, model.world, par)
 	else
@@ -98,7 +98,7 @@ function decide_stay(agent, par)
 end
 
 
-function decide_move(agent :: Agent, world::World, par)
+function decide_move(agent::Agent, world::World, par)
 	# end is current location
 	world.cities[agent.plan[end-1].id]
 end
@@ -328,7 +328,7 @@ function mingle!(agent, location, world, par)
 	end
 end
 
-function consensus(val1, val2)
+function consensus(val1::TrustedF, val2::TrustedF) :: TrustedF
 	sum_t = max(val1.trust + val2.trust, 0.0001)
 	v = (discounted(val1) + discounted(val2)) / sum_t
 	t = max(val1.trust, val2.trust)
@@ -339,15 +339,15 @@ end
 
 # TODO arrived agents don't update their info
 
-function exchange_info!(a1, a2, world, par)
+function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 
 	# a1 can never have arrived yet
 	arr = arrived(a2)
 
 	for l in eachindex(a1.info_loc)
 		
-		info1 = a1.info_loc[l]
-		info2 = a2.info_loc[l]
+		info1 :: InfoLocation = a1.info_loc[l]
+		info2 :: InfoLocation = a2.info_loc[l]
 
 		# neither agent knows anything
 		if info1 == Unknown && info2 == Unknown
@@ -377,8 +377,8 @@ function exchange_info!(a1, a2, world, par)
 
 	for l in eachindex(a1.info_link)
 		
-		info1 = a1.info_link[l]
-		info2 = a2.info_link[l]
+		info1 :: InfoLink = a1.info_link[l]
+		info2 :: InfoLink = a2.info_link[l]
 
 		# neither agent knows anything
 		if info1 == UnknownLink && info2 == UnknownLink
@@ -387,7 +387,7 @@ function exchange_info!(a1, a2, world, par)
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if info1 != UnknownLink && info2 != UnknownLink
-			frict_cons = consensus(info1.friction, info2.friction)
+			frict_cons :: TrustedF = consensus(info1.friction, info2.friction)
 			info1.friction = frict_cons
 			info2.friction = arr ? average(info2.friction, frict_cons) : frict_cons
 			continue
@@ -409,7 +409,7 @@ function exchange_info!(a1, a2, world, par)
 end
 
 
-function step_agent_info!(agent, model, par)
+function step_agent_info!(agent::Agent, model::Model, par)
 	for c in agent.contacts
 		if rand() < par.p_info_contacts
 			exchange_info!(agent, c, model.world, par)

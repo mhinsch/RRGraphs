@@ -19,7 +19,7 @@ struct Trusted{T}
 	trust :: Float64
 end
 
-TrustedF = Trusted{Float64}
+const TrustedF = Trusted{Float64}
 
 
 discounted(t :: Trusted{T}) where {T} = t. value * t.trust
@@ -50,7 +50,7 @@ mutable struct InfoLink
 	friction :: TrustedF
 end
 
-InfoLocation = InfoLocationT{InfoLink}
+const InfoLocation = InfoLocationT{InfoLink}
 
 const Unknown = InfoLocation(Nowhere, 0, TrustedF(0.0, 0.0), TrustedF(0.0, 0.0), [], [])
 const UnknownLink = InfoLink(0, Unknown, Unknown, TrustedF(0.0, 0.0))
@@ -70,9 +70,9 @@ add_neighbour!(loc, neigh) = push!(loc.neighbours, neigh)
 
 
 # migrants
-mutable struct Agent
+mutable struct AgentT{L}
 	# current real position
-	loc
+	loc :: L
 	in_transit :: Bool
 	# what it thinks it knows about the world
 	info_loc :: Vector{InfoLocation}
@@ -82,13 +82,10 @@ mutable struct Agent
 	# abstract capital, includes time & money
 	capital :: Float64
 	# people at home & in target country, other migrants
-	contacts :: Vector{Agent}
+	contacts :: Vector{AgentT{L}}
 end
 
-Agent(l, c :: Float64) = 
-	Agent(l, true, 
-		InfoLocation[], InfoLocation[], InfoLink[], InfoLocation[], 
-		c, Agent[])
+AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, true, [], [], [], [], c, [])
 
 
 target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown
@@ -125,7 +122,7 @@ mutable struct LocationT{L}
 	typ :: LOC_TYPE
 	resources :: Float64
 	quality :: Float64
-	people :: Vector{Agent}
+	people :: Vector{AgentT{LocationT{L}}}
 
 	links :: Vector{L}
 
@@ -154,12 +151,13 @@ end
 Link(id, t, l1, l2) = Link(id, t, l1, l2, 0, 0, 0)
 
 
-LocationT{L}(p :: Pos, t, i) where {L} = LocationT{L}(i, t, 0.0, 0.0, Agent[], L[], p, 0)
+LocationT{L}(p :: Pos, t, i) where {L} = LocationT{L}(i, t, 0.0, 0.0, [], L[], p, 0)
 # construct empty location
 #LocationT{L}() where {L} = LocationT{L}(Nowhere, STD, 0)
 
-Location = LocationT{Link}
+const Location = LocationT{Link}
 
+const Agent = AgentT{Location}
 
 # get the agent's info on a location
 info(agent, l::Location) = agent.info_loc[l.id]

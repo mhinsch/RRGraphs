@@ -91,7 +91,7 @@ function handle_arrivals!(model::Model, par)
 		if model.migrants[i].loc in model.world.exits
 			agent = model.migrants[i]
 			drop_at!(model.migrants, i)
-			remove_agent!(world, agent)
+			remove_agent!(model.world, agent)
 		end
 	end
 end
