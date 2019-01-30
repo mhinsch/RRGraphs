@@ -11,13 +11,60 @@ function costs_move!(agent, link :: Link, par)
 end
 
 
+function step_agent!(agent::Agent, model::Model, par)
+	if decide_stay(agent, par)
+		step_agent_stay!(agent, model.world, par)
+	else
+		step_agent_move!(agent, model.world, par)
+	end
+
+	step_agent_info!(agent, model, par)
+end
+
+
+function step_agent_move!(agent, world, par)
+	agent.in_transit = true
+
+	loc = decide_move(agent, world, par)
+
+	link = find_link(agent.loc, loc)
+	# update traffic counter
+	link.count += 1
+
+	costs_move!(agent, link, par)
+	explore_move!(agent, world, loc, par)
+	move!(world, agent, loc)
+	# TODO find better solution
+	pop!(agent.plan)
+end
+
+
+function step_agent_stay!(agent, world, par)
+	agent.in_transit = false
+	costs_stay!(agent, agent.loc, par)
+	explore_stay!(agent, world, par)
+	mingle!(agent, agent.loc, world, par)
+	plan!(agent, par)
+end
+
+
+# *********
+# decisions
+# *********
+
+
 function quality(link :: InfoLink, loc :: InfoLocation, par)
+	# [0:3]					     [0:1.5]	
 	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
 end
 
 function quality(loc :: InfoLocation, par)
-	discounted(loc.quality) + loc.pos.x*par.qual_weight_x + 
-		discounted(loc.resources)*par.qual_weight_trust
+	# [0:1]
+	discounted(loc.quality) + 
+		# [0:1]
+		loc.pos.x * par.qual_weight_x + 
+		# [0:1]
+		discounted(loc.resources) * par.qual_weight_res
 end
 
 # TODO properties of waystations
@@ -75,21 +122,10 @@ function plan!(agent, par)
 		return agent
 	end
 
-	# go to a neighbouring location 
+	# go to best neighbouring location 
 	agent.plan = [otherside(loc.links[best], loc), loc]
 
 	agent
-end
-
-
-function step_agent!(agent::Agent, model::Model, par)
-	if decide_stay(agent, par)
-		step_agent_stay!(agent, model.world, par)
-	else
-		step_agent_move!(agent, model.world, par)
-	end
-
-	step_agent_info!(agent, model, par)
 end
 
 
@@ -104,41 +140,19 @@ function decide_move(agent::Agent, world::World, par)
 end
 
 
-function step_agent_move!(agent, world, par)
-	agent.in_transit = true
-
-	loc = decide_move(agent, world, par)
-
-	link = find_link(agent.loc, loc)
-	link.count += 1
-
-#	println("a: ", agent.loc.id, " -> ", loc.id) 
-
-	costs_move!(agent, link, par)
-	explore_move!(agent, world, loc, par)
-	move!(world, agent, loc)
-	# TODO find better solution
-	pop!(agent.plan)
-end
-
-
-function step_agent_stay!(agent, world, par)
-	agent.in_transit = false
-	costs_stay!(agent, agent.loc, par)
-	explore_stay!(agent, world, par)
-	mingle!(agent, agent.loc, world, par)
-	plan!(agent, par)
-end
+# ***********
+# exploration
+# ***********
 
 
 # explore while staying at a location
 function explore_stay!(agent, world, par)
-	explore_at!(agent, world, agent.loc, 1.0, true, par)
+	explore_at!(agent, world, agent.loc, par.speed_expl_stay, true, par)
 end
 
 # explore while moving one step
 function explore_move!(agent, world, dest, par)
-	info_loc2 :: InfoLocation, l = explore_at!(agent, world, dest, 0.5, false, par)
+	info_loc2 :: InfoLocation, l = explore_at!(agent, world, dest, par.speed_expl_move, false, par)
 	info_loc1 :: InfoLocation = info_current(agent)
 
 	link = find_link(agent.loc, dest)
@@ -228,7 +242,8 @@ function discover!(agent, link :: Link, from :: Location, par)
 	info_from = info(agent, from)
 	@assert info_from != Unknown
 	info_to = info(agent, otherside(link, from))
-	info_link = InfoLink(link.id, info_from, info_to, TrustedF(par.frict_exp[Int(link.typ)], 0.0))
+	frict = link.distance * par.frict_exp[Int(link.typ)]
+	info_link = InfoLink(link.id, info_from, info_to, TrustedF(frict, 0.0))
 	add_info!(agent, info_link)
 	# TODO lots of redundancy, possibly join/extend
 	connect!(info_from, info_link)
@@ -237,27 +252,6 @@ function discover!(agent, link :: Link, from :: Location, par)
 	end
 
 	info_link	
-end
-
-
-# add new link as a copy from existing one (from other agent)
-# currently requires that both endpoints are known
-function maybe_learn!(agent, link_orig :: InfoLink)
-	# get corresponding loc info from naive individual
-	l1_info = agent.info_loc[link_orig.l1.id] 
-	l2_info = agent.info_loc[link_orig.l2.id] 
-
-	# check if the agent knows both end points, otherwise abort
-	if l1_info == Unknown || l2_info == Unknown
-		return UnknownLink	
-	end
-
-	info_link = InfoLink(link_orig.id, l1_info, l2_info, link_orig.friction)
-	add_info!(agent, info_link)
-	connect!(l1_info, info_link)
-	connect!(l2_info, info_link)
-
-	info_link
 end
 
 
@@ -304,6 +298,32 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 end
 
 
+# ********************
+# information exchange
+# ********************
+
+
+# add new link as a copy from existing one (from other agent)
+# currently requires that both endpoints are known
+function maybe_learn!(agent, link_orig :: InfoLink)
+	# get corresponding loc info from naive individual
+	l1_info = agent.info_loc[link_orig.l1.id] 
+	l2_info = agent.info_loc[link_orig.l2.id] 
+
+	# check if the agent knows both end points, otherwise abort
+	if l1_info == Unknown || l2_info == Unknown
+		return UnknownLink	
+	end
+
+	info_link = InfoLink(link_orig.id, l1_info, l2_info, link_orig.friction)
+	add_info!(agent, info_link)
+	connect!(l1_info, info_link)
+	connect!(l2_info, info_link)
+
+	info_link
+end
+
+
 # TODO parameterize
 # meet other agents, gain contacts and information
 function mingle!(agent, location, world, par)
@@ -345,6 +365,10 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 	arr = arrived(a2)
 
 	for l in eachindex(a1.info_loc)
+
+		if rand() > par.p_transfer_info
+			continue
+		end
 		
 		info1 :: InfoLocation = a1.info_loc[l]
 		info2 :: InfoLocation = a2.info_loc[l]
@@ -376,6 +400,10 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 	end
 
 	for l in eachindex(a1.info_link)
+
+		if rand() > par.p_transfer_info
+			continue
+		end
 		
 		info1 :: InfoLink = a1.info_link[l]
 		info2 :: InfoLink = a2.info_link[l]

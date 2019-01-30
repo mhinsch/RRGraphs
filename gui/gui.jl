@@ -41,11 +41,13 @@ using Random
 
 # const for performance reasons
 const parameters = Params()
-Random.seed!(parameters.rand_seed)
 
-
+Random.seed!(parameters.rand_seed_world)
 world = create_world(parameters)
+
+Random.seed!(parameters.rand_seed_sim)
 model = Model(world, Agent[], Agent[])
+
 
 # int(n :: Float64) = floor(Int, n)
 

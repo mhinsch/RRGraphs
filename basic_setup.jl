@@ -8,8 +8,9 @@ include("base/params.jl")
 
 p = Params()
 
-Random.seed!(p.rand_seed)
-
+Random.seed!(p.rand_seed_world)
 const w = create_world(p);
+
+Random.seed!(p.rand_seed_sim)
 const m = Model(w, Agent[], Agent[]);
 

@@ -1,7 +1,33 @@
 module Util
 
 
-export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, distance, Pathfinding
+export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, distance, Pathfinding, parse
+
+
+function Base.parse(t :: Type{T}, str) where {T<:Array}
+	v = t()
+	last = length(str)
+	i = 1
+
+	while i != nothing && i<=last
+		f = findnext(",", str, i)
+		if f==nothing && i<=last
+			j = last
+		else
+			j = f[1]-1
+		end
+
+		println(i, ", ", j)
+
+		if j != nothing
+			push!(v, parse(eltype(t), SubString(str, i, j)))
+		end
+		i = j+2
+	end
+
+	v
+end
+
 
 
 function drop!(cont, elem)

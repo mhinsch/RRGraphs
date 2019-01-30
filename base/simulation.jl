@@ -63,9 +63,6 @@ function handle_departures!(model::Model, par)
 		agent = Agent(entry, par.ini_capital)
 		agent.info_loc = fill(Unknown, length(model.world.cities))
 		agent.info_link = fill(UnknownLink, length(model.world.links))
-		add_agent!(entry, agent)
-		push!(model.people, agent)
-		push!(model.migrants, agent)
 
 		# add initial contacts
 		# (might have duplicates)
@@ -81,6 +78,10 @@ function handle_departures!(model::Model, par)
 				explore_at!(agent, model.world, l, 0.5, false, par)
 			end
 		end
+
+		add_agent!(entry, agent)
+		push!(model.people, agent)
+		push!(model.migrants, agent)
 	end
 end
 

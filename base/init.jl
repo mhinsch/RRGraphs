@@ -21,11 +21,11 @@ function setup_exit!(loc, par)
 end
 
 
+calc_friction(link, par) = link.distance * par.dist_scale[Int(link.typ)]
+
 function setup_link!(link, par)
 	link.distance = distance(link.l1, link.l2)
-	link.friction = 
-		link.distance * (1.0 - par.frict_range + rand() * par.frict_range) * 
-		par.dist_scale[Int(link.typ)]
+	link.friction = calc_friction(link, par) * (1.0 + rand() * par.frict_range)
 end
 
 

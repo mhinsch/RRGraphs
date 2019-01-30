@@ -134,7 +134,6 @@ end
 
 distance(l1, l2) = distance(l1.pos, l2.pos)
 
-
 @enum LINK_TYPE FAST=1 SLOW
 
 mutable struct Link
