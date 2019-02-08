@@ -2,7 +2,7 @@
 # for parameters
 using Parameters
 
-VF = Vector{Float64}
+const VF = Vector{Float64}
 
 "Simulation parameters"
 @with_kw struct Params
