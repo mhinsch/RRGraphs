@@ -7,6 +7,8 @@ mutable struct Model
 	migrants :: Vector{Agent}
 end
 
+n_arrived(model) = length(model.people) - length(model.migrants)
+
 
 function simulate!(model :: Model, steps, par)
 	for i in 1:steps
@@ -18,33 +20,9 @@ end
 function step_simulation!(model::Model, par)
 	handle_departures!(model, par)
 
-	cap = 0
-	targ = 0
-	mtarg = 0
-	plan = 0
-	mplan = 0
-	netw = 0
-
-	#println()
-	i = 1
 	for a in model.migrants
-		#println("agent ", i, ": ")
 		step_agent!(a, model, par)
-		i += 1
-		cap += a.capital
-		targ += length(a.info_target)
-		mtarg = max(mtarg, length(a.info_target))
-		plan += length(a.plan)
-		mplan = max(mplan, length(a.plan))
-		netw += length(a.contacts)
 	end
-
-	cap /= length(model.migrants)
-	targ /= length(model.migrants)
-	plan /= length(model.migrants)
-	netw /= length(model.migrants)
-
-	println("\tcap: ", cap, " targets: ", targ, " ", mtarg, " plan: ", plan, " ", mplan, " contacts: ", netw)
 
 	handle_arrivals!(model, par)
 end

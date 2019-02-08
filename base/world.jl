@@ -75,8 +75,10 @@ mutable struct AgentT{L}
 	loc :: L
 	in_transit :: Bool
 	# what it thinks it knows about the world
+	n_locs :: Int
 	info_loc :: Vector{InfoLocation}
 	info_target :: Vector{InfoLocation}
+	n_links :: Int
 	info_link :: Vector{InfoLink}
 	plan :: Vector{InfoLocation}
 	# abstract capital, includes time & money
@@ -85,7 +87,7 @@ mutable struct AgentT{L}
 	contacts :: Vector{AgentT{L}}
 end
 
-AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, true, [], [], [], [], c, [])
+AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, true, 0, [], [], 0, [], [], c, [])
 
 
 target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown
@@ -94,6 +96,8 @@ arrived(agent) = agent.loc.typ == EXIT
 
 
 function add_info!(agent, info :: InfoLocation, typ = STD) 
+	@assert agent.info_loc[info.id] == Unknown
+	agent.n_locs += 1
 	agent.info_loc[info.id] = info
 	if typ == EXIT
 		push!(agent.info_target, info)
@@ -101,10 +105,10 @@ function add_info!(agent, info :: InfoLocation, typ = STD)
 end
 
 function add_info!(agent, info :: InfoLink) 
+	@assert agent.info_link[info.id] == UnknownLink
+	agent.n_links += 1
 	agent.info_link[info.id] = info
 end
-	
-
 
 function add_contact!(agent, a)
 	if a in agent.contacts

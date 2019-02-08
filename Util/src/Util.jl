@@ -1,7 +1,7 @@
 module Util
 
 
-export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, distance, Pathfinding, parse
+export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, distance, parse, Pathfinding, StatsAccumulator
 
 
 function Base.parse(t :: Type{T}, str) where {T<:Array}
@@ -138,5 +138,6 @@ end
 
 include("page.jl")
 include("Pathfinding.jl")
+include("StatsAccumulator.jl")
 
 end
