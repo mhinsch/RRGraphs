@@ -17,11 +17,10 @@ const VF = Vector{Float64}
 	"maximum distance for link generation"
 	link_thresh		:: Float64	= 0.1
 
-	"number of starting positions"
-	n_start_pos 	:: Int 		= 3
 	"number of departures per time step"
 	rate_dep	 	:: Float64	= 20
 	n_exits			:: Int		= 10
+	"number of starting positions"
 	n_entries		:: Int		= 3
 	exit_dist		:: Float64	= 0.5
 	entry_dist		:: Float64	= 0.1
@@ -42,7 +41,6 @@ const VF = Vector{Float64}
 	res_exp			:: Float64	= 0.5
 	qual_exp		:: Float64	= 0.5
 	frict_exp		:: VF		= [1.25, 12.5]
-	move_learn		:: Float64	= 0.3
 	p_find_links	:: Float64	= 0.5
 	trust_found_links :: Float64 = 0.5
 	p_find_dests	:: Float64	= 0.3
