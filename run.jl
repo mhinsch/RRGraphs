@@ -11,7 +11,6 @@ using Analysis
 include("base/world.jl")
 include("base/init.jl")
 include("base/simulation.jl")
-include("base/params.jl")
 
 "add all fields of a type as command line arguments"
 function fields_as_args!(arg_settings, t :: Type)
@@ -63,6 +62,15 @@ function run(p, n_steps, log_file)
 	end
 end
 
+if ARGS[1][1] != '-'
+	const parfile = ARGS[1]
+	deleteat!(ARGS, 1)
+else
+	const parfile = "base/params.jl"
+end
+
+include(parfile)
+	
 
 const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 

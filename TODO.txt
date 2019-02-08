@@ -1,7 +1,5 @@
 * profile
 
-* check type stability
-
 
 * info exchange by interestingness/relevance?
 
