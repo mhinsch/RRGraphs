@@ -3,8 +3,6 @@ module Analysis
 export prepare_log, analyse_log
 
 using Util.StatsAccumulator
-include("base/world.jl")
-include("base/simulation.jl")
 
 function log(acc :: MaxMinAcc{T}, logf, sep = "\t") where {T}
 	print(logf, acc.max, sep, acc.min)
@@ -66,9 +64,10 @@ function analyse_log(model, logf)
 		log(a, logf)
 	end
 
-	print(logf, length(model.migrants), "\t", n_arrived(model), "\t")
+	print(logf, length(model.migrants), "\t", length(model.people) - length(model.migrants), "\t")
 
 	println(logf)
+	flush(logf)
 end
 	
 

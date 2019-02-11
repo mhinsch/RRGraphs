@@ -10,8 +10,21 @@ function put(canvas::Canvas, x, y, colour::UInt32)
 	canvas.pixels[(x-1)*canvas.ysize + y] = colour
 end
 
+function line(canvas::Canvas, x1, y1, x2, y2, col::UInt32)
+	bresenham(x1, y1, x2, y2) do x, y
+		put(canvas, x, y, col)
+	end
+end
 
-Base.size(canvas::Canvas) = (length(canvas.pixels) ÷ canvas.ysize, canvas.ysize)
+xsize(canvas::Canvas) = length(canvas.pixels) ÷ canvas.ysize
+ysize(canvas::Canvas) = canvas.ysize
+Base.size(canvas::Canvas) = xsize(canvas), ysize(canvas)
+
+
+clear!(canvas::Canvas) = fill!(canvas.pixels, 0)
+
+
+Base.copyto!(c1::Canvas, c2::Canvas) = copyto!(c1.pixels, c2.pixels)
 
 
 alpha(x) = UInt32(x<<24)
@@ -46,14 +59,14 @@ end
 
 scale(x, xs) = floor(Int, x*xs) + 1
 
+scale(p :: Pos, c :: Canvas) = scale(p.x, xsize(c)), scale(p.y, ysize(c))
+
 function draw_link!(canvas, link, value)
 	xs, ys = size(canvas)
 	x1, y1 = scale(link.l1.pos.x, xs), scale(link.l1.pos.y, ys)
 	x2, y2 = scale(link.l2.pos.x, xs), scale(link.l2.pos.y, ys)
 	col :: UInt32 = rgb(value * 255, (1.0-value) * 255, 0)
-	bresenham(x1, y1, x2, y2) do x, y
-		put(canvas, x, y, col)
-	end
+	line(canvas, x1, y1, x2, y2, col)
 end
 		
 
@@ -115,12 +128,14 @@ function draw_visitors!(canvas, model)
 end
 
 
-function draw_rand_knowledge!(canvas, model)
+function draw_rand_knowledge!(canvas, model, agent=nothing)
 	if length(model.migrants) < 1
-		return
+		return nothing
 	end
 
-	agent = rand(model.migrants)
+	if agent == nothing
+		agent = rand(model.migrants)
+	end
 
 	for l in agent.info_link
 		if l != UnknownLink && l.l1 != Unknown && l.l2 != Unknown
@@ -143,8 +158,55 @@ function draw_rand_knowledge!(canvas, model)
 		prev = c
 	end
 
-	xs, ys = size(canvas)
+	put(canvas, scale(agent.loc.pos, canvas)..., WHITE)
 
-	put(canvas, scale(agent.loc.pos.x, xs), scale(agent.loc.pos.y, ys), WHITE)
+	agent
 end
 
+
+function draw_rand_social!(canvas, model, depth=1, agent=nothing)
+	if length(model.migrants) < 1
+		return nothing
+	end
+
+	if agent == nothing
+		agent = rand(model.migrants)
+	end
+
+	todo = Vector{typeof(agent)}()
+	next = Vector{typeof(agent)}()
+	done = Set{typeof(agent)}()
+
+	push!(next, agent)
+
+
+	for d in 1:depth
+		todo, next = next, todo
+		resize!(next, 0)
+
+		v = floor(Int, d / depth * 255)
+
+		for a in todo
+			x, y = scale(a.loc.pos, canvas)
+
+			for o in a.contacts
+				if o in done
+					continue
+				end
+				xo, yo = scale(o.loc.pos, canvas)
+				line(canvas, x, y, xo, yo, rgb(255-v, v, 0))
+				push!(done, o)
+
+				if d < depth
+					for o2 in o.contacts
+						if ! (o2 in done)
+							push!(next, o2)
+						end
+					end
+				end
+			end
+		end
+	end
+
+	agent
+end
