@@ -23,7 +23,7 @@ function run(p, n_steps, log_file)
 		step_simulation!(m, p)
 		analyse_log(m, log_file)
 		println(i)
-		flush(STDOUT)
+		flush(stdout)
 	end
 end
 

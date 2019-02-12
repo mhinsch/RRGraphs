@@ -10,24 +10,23 @@ end
 
 
 function Base.iterate(n :: IL_NeighIter, i=1)
-	while i <= length(n.l.neighbours)
-		if n.l.neighbours[i] == Unknown
+	while i <= length(n.l.links)
+		o = otherside(n.l.links[i], n.l)
+		if o == Unknown
 			i += 1
 			continue
 		end
 		
-		return (n.l.neighbours[i], i+1)
+		return (o, i+1)
 	end
 
 	nothing
 end
 
-
 function path_costs(l1 :: InfoLocation, l2 :: InfoLocation)
-	for i in eachindex(l1.neighbours)
-		n = l1.neighbours[i]
-		if n == l2
-			return l1.links[i].friction.value
+	for l in l1.links
+		if otherside(l, l1) == l2
+			return l.friction.value
 		end
 	end
 

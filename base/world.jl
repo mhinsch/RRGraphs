@@ -40,7 +40,6 @@ mutable struct InfoLocationT{L}
 	quality :: TrustedF
 
 	links :: Vector{L}
-	neighbours :: Vector{InfoLocationT{L}}
 end
 
 mutable struct InfoLink
@@ -52,7 +51,7 @@ end
 
 const InfoLocation = InfoLocationT{InfoLink}
 
-const Unknown = InfoLocation(Nowhere, 0, TrustedF(0.0, 0.0), TrustedF(0.0, 0.0), [], [])
+const Unknown = InfoLocation(Nowhere, 0, TrustedF(0.0, 0.0), TrustedF(0.0, 0.0), [])
 const UnknownLink = InfoLink(0, Unknown, Unknown, TrustedF(0.0, 0.0))
 
 
@@ -65,8 +64,6 @@ otherside(link, loc) = loc == link.l1 ? link.l2 : link.l1
 
 # no check for validity etc.
 add_link!(loc, link) = push!(loc.links, link)
-
-add_neighbour!(loc, neigh) = push!(loc.neighbours, neigh)
 
 
 # migrants

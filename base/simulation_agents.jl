@@ -185,11 +185,6 @@ function connect!(loc :: InfoLocation, link :: InfoLink)
 			else
 				link.l2 = loc
 			end
-
-			loc_o = otherside(link, loc)
-			if loc_o != Unknown
-				add_neighbour!(loc_o, loc)
-			end
 		end
 	end
 
@@ -199,10 +194,6 @@ function connect!(loc :: InfoLocation, link :: InfoLink)
 
 	if ! (link in loc.links)
 		add_link!(loc, link)
-		loc_o = otherside(link, loc)
-		if loc_o != Unknown
-			add_neighbour!(loc, loc_o)
-		end
 	end
 end
 
@@ -211,7 +202,7 @@ end
 # connect to existing links
 function discover!(agent, loc :: Location, par)
 	# agents start off with expected values
-	inf = InfoLocation(loc.pos, loc.id, TrustedF(par.res_exp, 0.0), TrustedF(par.qual_exp, 0.0), [], [])
+	inf = InfoLocation(loc.pos, loc.id, TrustedF(par.res_exp, 0.0), TrustedF(par.qual_exp, 0.0), [])
 	# add location info to agent
 	add_info!(agent, inf, loc.typ)
 	# connect existing link infos
