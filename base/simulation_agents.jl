@@ -157,7 +157,7 @@ function explore_move!(agent, world, dest, par)
 
 	link = find_link(agent.loc, dest)
 	inf = info(agent, link)
-	if inf == UnknownLink
+	if !known(inf)
 		# TODO stochastic error
 		inf = discover!(agent, link, agent.loc, par)
 	end
@@ -173,14 +173,14 @@ function connect!(loc :: InfoLocation, link :: InfoLink)
 	
 	# *** add location to link
 	loc_connected = link.l1 == loc || link.l2 == loc
-	free_slot = link.l1 == Unknown || link.l2 == Unknown
+	free_slot = !known(link.l1) || !known(link.l2)
 
 	if ! loc_connected
 		if ! free_slot
 			error("Error: Trying to connect a fully connected link!")
 		else	
 			# link not connected yet, has free slot
-			if link.l1 == Unknown
+			if !known(link.l1)
 				link.l1 = loc
 			else
 				link.l2 = loc
@@ -210,10 +210,10 @@ function discover!(agent, loc :: Location, par)
 		info_link = info(agent, link)
 
 		# links to exit are always known
-		if info_link == UnknownLink
+		if !known(info_link)
 			if loc.typ != EXIT
 				lo = otherside(link, loc)
-				if lo.typ == EXIT && info(agent, lo) != Unknown
+				if lo.typ == EXIT && knows(agent, lo)
 					discover!(agent, link, loc, par)
 				end
 			end
@@ -231,14 +231,14 @@ end
 # connect to existing location
 function discover!(agent, link :: Link, from :: Location, par)
 	info_from = info(agent, from)
-	@assert info_from != Unknown
+	@assert known(info_from)
 	info_to = info(agent, otherside(link, from))
 	frict = link.distance * par.frict_exp[Int(link.typ)]
 	info_link = InfoLink(link.id, info_from, info_to, TrustedF(frict, 0.0))
 	add_info!(agent, info_link)
 	# TODO lots of redundancy, possibly join/extend
 	connect!(info_from, info_link)
-	if info_to != Unknown
+	if known(info_to)
 		connect!(info_to, info_link)
 	end
 
@@ -250,7 +250,7 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 	# knowledge
 	inf = info(agent, loc)
 	
-	if inf == Unknown
+	if !known(inf)
 		inf = discover!(agent, loc, par)
 	end
 
@@ -268,7 +268,7 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 	for link in loc.links
 		info_link = info(agent, link)
 
-		if info_link == UnknownLink && rand() < par.p_find_links
+		if !known(info_link) && rand() < par.p_find_links
 			info_link = discover!(agent, link, loc, par)
 
 			# TODO imperfect knowledge
@@ -280,7 +280,7 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 		end
 
 		# we might get info on connected location
-		if info_link != Unknown && rand() < par.p_find_dests
+		if known(info_link) && rand() < par.p_find_dests
 			explore_at!(agent, world, otherside(link, loc), 0.5, false, par)
 		end
 	end
@@ -302,7 +302,7 @@ function maybe_learn!(agent, link_orig :: InfoLink)
 	l2_info = agent.info_loc[link_orig.l2.id] 
 
 	# check if the agent knows both end points, otherwise abort
-	if l1_info == Unknown || l2_info == Unknown
+	if !known(l1_info) || !known(l2_info)
 		return UnknownLink	
 	end
 
@@ -365,12 +365,12 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		info2 :: InfoLocation = a2.info_loc[l]
 
 		# neither agent knows anything
-		if info1 == Unknown && info2 == Unknown
+		if !known(info1) && !known(info2)
 			continue
 		end
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
-		if info1 != Unknown && info2 != Unknown
+		if known(info1) && known(info2)
 			res_cons = consensus(info1.resources, info2.resources)
 			info1.resources = res_cons
 			info2.resources = arr ? average(info2.resources, res_cons) : res_cons
@@ -383,10 +383,10 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		# not pretty but otherwise we would have to essentially duplicate discover
 		# TODO transfer knowledge
 		loc = world.cities[l]
-		if info2 == Unknown 
-			discover!(a2, loc, par)
-		else # info1 == Unknown
+		if known(info2)
 			discover!(a1, loc, par)
+		else
+			discover!(a2, loc, par)
 		end
 	end
 
@@ -400,12 +400,12 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		info2 :: InfoLink = a2.info_link[l]
 
 		# neither agent knows anything
-		if info1 == UnknownLink && info2 == UnknownLink
+		if !known(info1) && !known(info2)
 			continue
 		end
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
-		if info1 != UnknownLink && info2 != UnknownLink
+		if known(info1) && known(info2)
 			frict_cons :: TrustedF = consensus(info1.friction, info2.friction)
 			info1.friction = frict_cons
 			info2.friction = arr ? average(info2.friction, frict_cons) : frict_cons
@@ -414,10 +414,10 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 
 		# only one agent knows the link
 
-		if info1 == UnknownLink
-			maybe_learn!(a1, info2)
-		else
+		if known(info1)
 			maybe_learn!(a2, info1)
+		else
+			maybe_learn!(a1, info2)
 		end
 
 		# TODO 

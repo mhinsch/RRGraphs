@@ -138,13 +138,13 @@ function draw_rand_knowledge!(canvas, model, agent=nothing)
 	end
 
 	for l in agent.info_link
-		if l != UnknownLink && l.l1 != Unknown && l.l2 != Unknown
+		if known(l) && known(l.l1) && known(l.l2)
 			draw_link!(canvas, l, 0.0)
 		end
 	end
 
 	for c in agent.info_loc
-		if c != Unknown
+		if known(c)
 			draw_city!(canvas, c)
 		end
 	end
@@ -152,7 +152,7 @@ function draw_rand_knowledge!(canvas, model, agent=nothing)
 	prev = Unknown
 	for c in agent.plan
 		draw_city!(canvas, c, red(255))
-		if prev != Unknown
+		if known(prev)
 			draw_link!(canvas, find_link(prev, c), 1.0)
 		end
 		prev = c

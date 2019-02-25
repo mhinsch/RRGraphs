@@ -12,7 +12,7 @@ end
 function Base.iterate(n :: IL_NeighIter, i=1)
 	while i <= length(n.l.links)
 		o = otherside(n.l.links[i], n.l)
-		if o == Unknown
+		if !known(o)
 			i += 1
 			continue
 		end

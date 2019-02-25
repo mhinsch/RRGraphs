@@ -171,6 +171,9 @@ knows(agent, l::Location) = info(agent, l) != Unknown
 # get the agent's info on a link
 knows(agent, l::Link) = info(agent, l) != UnknownLink
 
+known(l::InfoLocation) = l != Unknown
+known(l::InfoLink) = l != UnknownLink
+
 function find_link(from, to)
 	for l in from.links
 		if otherside(l, from) == to
