@@ -194,7 +194,7 @@ function draw_rand_social!(canvas, model, depth=1, agent=nothing)
 					continue
 				end
 				xo, yo = scale(o.loc.pos, canvas)
-				line(canvas, x, y, xo, yo, rgb(255-v, v, 0))
+				line(canvas, x, y, xo, yo, rgb(v, 255-v, 0))
 				push!(done, o)
 
 				if d < depth
