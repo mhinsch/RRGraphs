@@ -22,13 +22,14 @@ end
 const TrustedF = Trusted{Float64}
 
 
-discounted(t :: Trusted{T}) where {T} = t. value * t.trust
+discounted(t :: Trusted{T}) where {T} = t.value * t.trust
 
 
-update(t :: TrustedF, val, speed) = average(t, TrustedF(val, 1.0), 1-speed)
+update(t :: TrustedF, val, speed) = average(t, TrustedF(val, 1.0), speed)
 
 average(val :: TrustedF, target :: TrustedF, weight = 0.5) =
-	TrustedF(val.value * weight + target.value * (1 - weight), val.trust * weight + target.trust * (1 - weight))
+	TrustedF(val.value * (1.0-weight) + target.value * weight, 
+		val.trust * (1.0-weight) + target.trust * weight)
 
 
 # a piece of knowledge an agent has about a location
@@ -166,13 +167,13 @@ info_current(agent) = info(agent, agent.loc)
 # get the agent's info on a link
 info(agent, l::Link) = agent.info_link[l.id]
 
-# get the agent's info on a location
-knows(agent, l::Location) = info(agent, l) != Unknown
-# get the agent's info on a link
-knows(agent, l::Link) = info(agent, l) != UnknownLink
-
 known(l::InfoLocation) = l != Unknown
 known(l::InfoLink) = l != UnknownLink
+
+# get the agent's info on a location
+knows(agent, l::Location) = known(info(agent, l))
+# get the agent's info on a link
+knows(agent, l::Link) = known(info(agent, l))
 
 function find_link(from, to)
 	for l in from.links

@@ -61,5 +61,12 @@ const VF = Vector{Float64}
 	p_info_contacts	:: Float64	= 0.1
 	p_transfer_info	:: Float64	= 0.1
 	n_contacts_max	:: Int		= 50
+	arr_learn		:: Float64	= 0.0
+	"change doubt into belief"
+	convince		:: Float64	= 0.5
+	"change belief into other belief"
+	convert			:: Float64	= 0.1
+	"change belief into doubt"
+	confuse			:: Float64	= 0.3
 end
 

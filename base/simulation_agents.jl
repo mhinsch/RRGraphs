@@ -54,6 +54,10 @@ end
 
 
 function quality(link :: InfoLink, loc :: InfoLocation, par)
+	@assert known(link)
+	@assert known(loc)
+	@assert friction(link) >= 0
+	@assert !isnan(friction(link))
 	# [0:3]					     [0:1.5]	
 	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
 end
@@ -112,9 +116,12 @@ function plan!(agent, par)
 		push!(quals, quality(agent.plan, par) + quals[end])
 	end
 
-	r = rand() * (quals[end] - 0.0001)
-	# -1 because first el is stay
-	best = findfirst(x -> x>r, quals) - 1
+	best = 0
+	if quals[end] > 0
+		r = rand() * (quals[end] - 0.0001)
+		# -1 because first el is stay
+		best = findfirst(x -> x>r, quals) - 1
+	end
 
 	# either stay or use planned path
 	if best == 0 ||
@@ -348,15 +355,49 @@ function consensus(val1::TrustedF, val2::TrustedF) :: TrustedF
 end
 
 
-# TODO arrived agents don't update their info
+function exchange_beliefs(val1::TrustedF, val2::TrustedF, par)
+	if val1.trust == 0.0 && val2.trust == 0.0
+		return val1, val2
+	end
+
+	t1 = val1.trust		# trust
+	d1 = 1.0 - t1		# doubt
+	v1 = val1.value
+	t2 = val2.trust
+	d2 = 1.0 - t2
+	v2 = val2.value
+	diff = v1 - v2
+	dist = abs(diff) / (v1 + v2 + 0.00001)
+
+	# sum up values according to area of overlap between 1 and 2
+	# from point of view of 1:
+	# doubt1 x doubt2 -> doubt
+	# trust1 x doubt2 -> trust1
+	# doubt1 x trust2 -> doubt1 / convince
+	# trust1 x trust2 -> trust1 / convert / confuse (doubt)
+
+	#					doubt1 x doubt2		doubt1 x trust2
+	d1_ = 					d1 * d2 + 		d1 * t2 * (1.0 - par.convince) + 
+	#	trust1 x trust2
+		t1 * t2 * par.confuse * dist
+	#	trust1 x doubt2
+	v1_ = t1 * d2 * v1 + 					d1 * t2 * par.convince * v2 + 
+		t1 * t2 * (1.0 - par.confuse * dist) * ((1.0 - par.convert) * v1 + par.convert * v2)
+
+	d2_ = d1 * d2 + 		t1 * d2 * (1.0 - par.convince) + 
+		t2 * t1 * par.confuse * dist
+	v2_ = d1 * t2 * v2 + 	t1 * d2 * par.convince * v1 + 
+		t2 * t1 * (1.0 - par.confuse * dist) * ((1.0 - par.convert) * v2 + par.convert * v1)
+
+	TrustedF(v1_ / (1.0-d1_), 1.0 - d1_), TrustedF(v2_ / (1.0-d2_), 1.0 - d2_)
+end
+
 
 function exchange_info!(a1::Agent, a2::Agent, world::World, par)
-
 	# a1 can never have arrived yet
 	arr = arrived(a2)
 
 	for l in eachindex(a1.info_loc)
-
 		if rand() > par.p_transfer_info
 			continue
 		end
@@ -369,29 +410,29 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 			continue
 		end
 		
-		# both have knowledge at l, compare by trust and transfer accordingly
-		if known(info1) && known(info2)
-			res_cons = consensus(info1.resources, info2.resources)
-			info1.resources = res_cons
-			info2.resources = arr ? average(info2.resources, res_cons) : res_cons
-			qual_cons = consensus(info1.quality, info2.quality)
-			info1.quality = qual_cons
-			info2.quality = arr ? average(info2.quality, qual_cons) : qual_cons
-			continue
+		loc = world.cities[l]
+
+		if !known(info1)
+			discover!(a1, loc, par)
+		elseif !known(info2) && !arr
+			discover!(a2, loc, par)
 		end
 
-		# not pretty but otherwise we would have to essentially duplicate discover
-		# TODO transfer knowledge
-		loc = world.cities[l]
-		if known(info2)
-			discover!(a1, loc, par)
-		else
-			discover!(a2, loc, par)
+		# both have knowledge at l, compare by trust and transfer accordingly
+		if known(info1) && known(info2)
+			res1, res2 = exchange_beliefs(info1.resources, info2.resources, par)
+			qual1, qual2 = exchange_beliefs(info1.quality, info2.quality, par)
+			info1.resources = res1
+			info1.quality = qual1
+			# only a2 can have arrived
+			if !arr 
+				info2.resources = res2
+				info2.quality = qual2
+			end
 		end
 	end
 
 	for l in eachindex(a1.info_link)
-
 		if rand() > par.p_transfer_info
 			continue
 		end
@@ -403,27 +444,28 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		if !known(info1) && !known(info2)
 			continue
 		end
+
+		link = world.links[l]
+		
+		# only one agent knows the link
+		if !known(info1)
+			if knows(a1, link.l1) && knows(a1, link.l2)
+				discover!(a1, link, link.l1, par)
+			end
+		elseif !known(info2) && !arr
+			if knows(a2, link.l1) && knows(a2, link.l2)
+				discover!(a2, link, link.l1, par)
+			end
+		end
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if known(info1) && known(info2)
-			frict_cons :: TrustedF = consensus(info1.friction, info2.friction)
-			info1.friction = frict_cons
-			info2.friction = arr ? average(info2.friction, frict_cons) : frict_cons
-			continue
+			frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, par)
+			info1.friction = frict1
+			if !arr
+				info2.friction = frict2
+			end
 		end
-
-		# only one agent knows the link
-
-		if known(info1)
-			maybe_learn!(a2, info1)
-		else
-			maybe_learn!(a1, info2)
-		end
-
-		# TODO 
-		# - stochasticity
-		# - incomplete transfer
-
 	end
 end
 
