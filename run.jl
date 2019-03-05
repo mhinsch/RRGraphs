@@ -25,6 +25,8 @@ function run(p, n_steps, log_file)
 		println(i)
 		flush(stdout)
 	end
+
+	m
 end
 
 
@@ -44,6 +46,12 @@ const arg_settings = ArgParseSettings("run simulation", autofix_names=true)
 	"--out-file", "-o"
 		help = "file name for data output"
 		default = "output.txt"
+	"--city-file"
+		help = "file name for city output"
+		default = "cities.txt"
+	"--link-file"
+		help = "file name for link output"
+		default = "links.txt"
 	"--log-file", "-l"
 		help = "file name for log"
 		default = "log.txt"
@@ -62,11 +70,17 @@ save_params(args[:par_file], p)
 const n_steps = args[:n_steps] 
 
 const logf = open(args[:log_file], "w")
+const cityf = open(args[:city_file], "w")
+const linkf = open(args[:link_file], "w")
 #const outf = open(args[:out_file], "w")
 
 prepare_log(logf)
 #prepare_out(outf)
-run(p, n_steps, logf)
+const m = run(p, n_steps, logf)
+
+analyse_world(m, cityf, linkf)
 
 #close(outf)
 close(logf)
+close(cityf)
+close(linkf)

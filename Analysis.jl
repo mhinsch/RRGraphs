@@ -1,6 +1,6 @@
 module Analysis
 
-export prepare_log, analyse_log
+export prepare_log, analyse_log, analyse_world
 
 using Util.StatsAccumulator
 
@@ -72,6 +72,24 @@ end
 	
 
 function prepare_out(outf)
+end
+
+
+function analyse_world(model, out_cities, out_links)
+	println(out_cities, "# id	x	y	type	qual	N	links	count")
+	println(out_links, "# id	type	l1	l2	friction	count")
+
+	w = model.world
+
+	for c in w.cities
+		println(out_cities, c.id, "\t", c.pos.x, "\t", c.pos.y, "\t", c.typ, "\t", 
+			c.quality, "\t", length(c.people), "\t", length(c.links), "\t", c.count)
+	end
+
+	for l in w.links
+		println(out_links, l.id, "\t", l.typ, "\t", l.l1.id, "\t", l.l2.id, "\t", l.friction, "\t",
+			l.count)
+	end
 end
 
 
