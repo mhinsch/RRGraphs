@@ -89,12 +89,26 @@ function quality(plan :: Vector{InfoLocation}, par)
 end
 
 
+function costs_quality(l1::InfoLocation, l2::InfoLocation, par)
+	link = find_link(l1, l2)
+	qual = quality(l2, par)
+
+	friction(link) * (par.path_weight_frict + 3.0) / (par.path_weight_frict + qual)
+end
+
+
 function plan!(agent, par)
+
 	if agent.info_target == []
 		agent.plan = []
 	else
-		agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
-			path_costs, path_costs_estimate, each_neighbour)
+		if par.path_use_quality
+			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
+			(l1, l2)->costs_quality(l1, l2, par), path_costs_estimate, each_neighbour)
+		else
+			agent.plan, count = Pathfinding.path_Astar(info_current(agent), agent.info_target, 
+				path_costs, path_costs_estimate, each_neighbour)
+		end
 	end
 
 	# no plan, try to find better position at least
@@ -177,28 +191,19 @@ end
 
 # connect loc and link (if not already connected)
 function connect!(loc :: InfoLocation, link :: InfoLink)
-	
-	# *** add location to link
-	loc_connected = link.l1 == loc || link.l2 == loc
-	free_slot = !known(link.l1) || !known(link.l2)
-
-	if ! loc_connected
-		if ! free_slot
+	# add location to link
+	if link.l1 != loc && link.l2 != loc
+		# link not connected yet, should have free slot
+		if !known(link.l1)
+			link.l1 = loc
+		elseif !known(link.l2)
+			link.l2 = loc
+		else
 			error("Error: Trying to connect a fully connected link!")
-		else	
-			# link not connected yet, has free slot
-			if !known(link.l1)
-				link.l1 = loc
-			else
-				link.l2 = loc
-			end
 		end
 	end
 
-	# *** add link to location
-
-	found = 0
-
+	# add link to location
 	if ! (link in loc.links)
 		add_link!(loc, link)
 	end
