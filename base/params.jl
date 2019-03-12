@@ -70,6 +70,9 @@ const VF = Vector{Float64}
 	convert			:: Float64	= 0.1
 	"change belief into doubt"
 	confuse			:: Float64	= 0.3
+	"stochastic error when transmitting information"
 	error			:: Float64 	= 0.1
+	"weight of opinion of arrived agents"
+	weight_arr		:: Float64	= 1.0
 end
 

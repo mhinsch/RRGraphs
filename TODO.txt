@@ -1,5 +1,3 @@
-* profile
-
 
 * info exchange by interestingness/relevance?
 
