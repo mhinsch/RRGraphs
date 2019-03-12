@@ -33,7 +33,7 @@ function prepare_log(logf)
 	header(logf, "n_plan")
 	header(logf, "n_contacts")
 	header(logf, "count")
-	print(logf, "n_migrants")
+	print(logf, "n_migrants\t")
 	print(logf, "n_arrived")
 	println(logf)
 end

@@ -214,7 +214,7 @@ end
 # connect to existing links
 function discover!(agent, loc :: Location, par)
 	# agents start off with expected values
-	inf = InfoLocation(loc.pos, loc.id, TrustedF(par.res_exp, 0.0), TrustedF(par.qual_exp, 0.0), [])
+	inf = InfoLocation(loc.pos, loc.id, TrustedF(par.res_exp), TrustedF(par.qual_exp), [])
 	# add location info to agent
 	add_info!(agent, inf, loc.typ)
 	# connect existing link infos
@@ -246,7 +246,7 @@ function discover!(agent, link :: Link, from :: Location, par)
 	@assert known(info_from)
 	info_to = info(agent, otherside(link, from))
 	frict = link.distance * par.frict_exp[Int(link.typ)]
-	info_link = InfoLink(link.id, info_from, info_to, TrustedF(frict, 0.0))
+	info_link = InfoLink(link.id, info_from, info_to, TrustedF(frict))
 	add_info!(agent, info_link)
 	# TODO lots of redundancy, possibly join/extend
 	connect!(info_from, info_link)
@@ -368,11 +368,12 @@ function exchange_beliefs(val1::TrustedF, val2::TrustedF, par)
 	t1 = val1.trust		# trust
 	d1 = 1.0 - t1		# doubt
 	v1 = val1.value
-	t2 = val2.trust
-	d2 = 1.0 - t2
-	v2 = val2.value
-	diff = v1 - v2
-	dist = abs(diff) / (v1 + v2 + 0.00001)
+
+	t2_pcv = sigmoid(rand(), par.error, val2.trust)
+	d2_pcv = 1.0 - t2_pcv
+	v2_pcv = val2.value * (sigmoid(rand(), par.error, 0.5) + 0.5)
+	
+	dist1_pcv = abs(v1-v2_pcv) / (v1 + v2_pcv + 0.00001)
 
 	# sum up values according to area of overlap between 1 and 2
 	# from point of view of 1:
@@ -382,17 +383,30 @@ function exchange_beliefs(val1::TrustedF, val2::TrustedF, par)
 	# trust1 x trust2 -> trust1 / convert / confuse (doubt)
 
 	#					doubt1 x doubt2		doubt1 x trust2
-	d1_ = 					d1 * d2 + 		d1 * t2 * (1.0 - par.convince) + 
+	d1_ = 					d1 * d2_pcv + 	d1 * t2_pcv * (1.0 - par.convince) + 
 	#	trust1 x trust2
-		t1 * t2 * par.confuse * dist
+		t1 * t2_pcv * par.confuse * dist1_pcv
 	#	trust1 x doubt2
-	v1_ = t1 * d2 * v1 + 					d1 * t2 * par.convince * v2 + 
-		t1 * t2 * (1.0 - par.confuse * dist) * ((1.0 - par.convert) * v1 + par.convert * v2)
+	v1_ = t1 * d2_pcv * v1 + 					d1 * t2_pcv * par.convince * v2_pcv + 
+		t1 * t2_pcv * (1.0 - par.confuse * dist1_pcv) * ((1.0 - par.convert) * v1 + par.convert * v2_pcv)
 
-	d2_ = d1 * d2 + 		t1 * d2 * (1.0 - par.convince) + 
-		t2 * t1 * par.confuse * dist
-	v2_ = d1 * t2 * v2 + 	t1 * d2 * par.convince * v1 + 
-		t2 * t1 * (1.0 - par.confuse * dist) * ((1.0 - par.convert) * v2 + par.convert * v1)
+	t2 = val2.trust
+	d2 = 1.0 - t2
+	v2 = val2.value
+
+	t1_pcv = sigmoid(rand(), par.error, t1)
+	d1_pcv = 1.0 - t1_pcv
+	v1_pcv = val1.value * (sigmoid(rand(), par.error, 0.5) + 0.5)
+
+	dist2_pcv = abs(v2-v1_pcv) / (v2 + v1_pcv + 0.00001)
+
+	#					doubt2 x doubt1		doubt2 x trust1
+	d2_ = 					d2 * d1_pcv + 	d2 * t1_pcv * (1.0 - par.convince) + 
+	#	trust2 x trust1
+		t2 * t1_pcv * par.confuse * dist2_pcv
+	#	trust2 x doubt1
+	v2_ = t2 * d1_pcv * v2 + 					d2 * t1_pcv * par.convince * v1_pcv + 
+		t2 * t1_pcv * (1.0 - par.confuse * dist2_pcv) * ((1.0 - par.convert) * v2 + par.convert * v1_pcv)
 
 	TrustedF(v1_ / (1.0-d1_), 1.0 - d1_), TrustedF(v2_ / (1.0-d2_), 1.0 - d2_)
 end

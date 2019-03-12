@@ -55,7 +55,7 @@ const VF = Vector{Float64}
 	qual_weight_x	:: Float64	= 0.5
 	qual_weight_res	:: Float64 = 0.1
 	qual_weight_frict :: Float64 = 0.1
-	path_use_quality:: Bool = true
+	path_use_quality:: Bool		= true
 	path_weight_frict :: Float64 = 1.0
 
 	p_keep_contact 	:: Float64 	= 0.1
@@ -70,5 +70,6 @@ const VF = Vector{Float64}
 	convert			:: Float64	= 0.1
 	"change belief into doubt"
 	confuse			:: Float64	= 0.3
+	error			:: Float64 	= 0.1
 end
 
