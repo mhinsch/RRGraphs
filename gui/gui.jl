@@ -46,7 +46,8 @@ function render(p :: Panel)
 end
 
 
-const panel_size = 800
+const panel_size = 512
+
 const win_size = 2 * panel_size
 
 const renderer = setup_window(win_size, win_size)

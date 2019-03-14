@@ -369,10 +369,6 @@ function exchange_beliefs(val1::TrustedF, val2::TrustedF, par, w1 = 1.0, w2 = 1.
 	ce1 = par.convert^(1.0/w2)
 	cu1 = par.confuse
 
-	ci1 = par.convince^(1.0/w1)
-	ce1 = par.convert^(1.0/w1)
-	cu1 = par.confuse
-
 	t1 = val1.trust		# trust
 	d1 = 1.0 - t1		# doubt
 	v1 = val1.value
@@ -398,6 +394,10 @@ function exchange_beliefs(val1::TrustedF, val2::TrustedF, par, w1 = 1.0, w2 = 1.
 	v1_ = t1 * d2_pcv * v1 + 					d1 * t2_pcv * ci1 * v2_pcv + 
 		t1 * t2_pcv * (1.0 - cu1 * dist1_pcv) * ((1.0 - ce1) * v1 + ce1 * v2_pcv)
 
+	ci2 = par.convince^(1.0/w1)
+	ce2 = par.convert^(1.0/w1)
+	cu2 = par.confuse
+
 	t2 = val2.trust
 	d2 = 1.0 - t2
 	v2 = val2.value
@@ -409,7 +409,7 @@ function exchange_beliefs(val1::TrustedF, val2::TrustedF, par, w1 = 1.0, w2 = 1.
 	dist2_pcv = abs(v2-v1_pcv) / (v2 + v1_pcv + 0.00001)
 
 	#					doubt2 x doubt1		doubt2 x trust1
-	d2_ = 					d2 * d1_pcv + 	d2 * t1_pcv * (1.0 - ci) + 
+	d2_ = 					d2 * d1_pcv + 	d2 * t1_pcv * (1.0 - ci2) + 
 	#	trust2 x trust1
 		t2 * t1_pcv * cu2 * dist2_pcv
 	#	trust2 x doubt1
