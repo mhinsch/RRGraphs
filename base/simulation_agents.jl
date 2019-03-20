@@ -360,61 +360,55 @@ function consensus(val1::TrustedF, val2::TrustedF) :: TrustedF
 end
 
 
-function exchange_beliefs(val1::TrustedF, val2::TrustedF, par, w1 = 1.0, w2 = 1.0)
+struct InfoPars
+	convince :: Float64
+	convert :: Float64
+	confuse :: Float64
+	error :: Float64
+end
+
+
+function receive_belief(self::TrustedF, other::TrustedF, par)
+	ci = par.convince
+	ce = par.convert 
+	cu = par.confuse
+
+	t = self.trust		# trust
+	d = 1.0 - t		# doubt
+	v = self.value
+
+	t_pcv = limit(0.000001, other.trust + unf_delta(par.error), 0.99999)
+	d_pcv = 1.0 - t_pcv
+	v_pcv = max(0.0, other.value + unf_delta(par.error))
+	
+	dist_pcv = abs(v-v_pcv) / (v + v_pcv + 0.00001)
+
+	# sum up values according to area of overlap between 1 and 2
+	# from point of view of 1:
+	# doubt x doubt -> doubt
+	# trust x doubt -> trust
+	# doubt x trust -> doubt / convince
+	# trust x trust -> trust / convert / confuse (doubt)
+
+	#					doubt x doubt		doubt x trust
+	d_ = 					d * d_pcv + 	d * t_pcv * (1.0 - ci) + 
+	#	trust x trust
+		t * t_pcv * cu * dist_pcv
+	#	trust x doubt
+	v_ = t * d_pcv * v + 					d * t_pcv * ci * v_pcv + 
+		t * t_pcv * (1.0 - cu * dist_pcv) * ((1.0 - ce) * v + ce * v_pcv)
+
+	d_, v_
+end
+
+function exchange_beliefs(val1::TrustedF, val2::TrustedF, par1, par2)
 	if val1.trust == 0.0 && val2.trust == 0.0
 		return val1, val2
 	end
 
-	ci1 = par.convince^(1.0/w2)
-	ce1 = par.convert^(1.0/w2)
-	cu1 = par.confuse
+	d1_, v1_ = receive_belief(val1, val2, par1)
 
-	t1 = val1.trust		# trust
-	d1 = 1.0 - t1		# doubt
-	v1 = val1.value
-
-	t2_pcv = sigmoid(rand(), par.error, val2.trust)
-	d2_pcv = 1.0 - t2_pcv
-	v2_pcv = val2.value * (sigmoid(rand(), par.error, 0.5) + 0.5)
-	
-	dist1_pcv = abs(v1-v2_pcv) / (v1 + v2_pcv + 0.00001)
-
-	# sum up values according to area of overlap between 1 and 2
-	# from point of view of 1:
-	# doubt1 x doubt2 -> doubt
-	# trust1 x doubt2 -> trust1
-	# doubt1 x trust2 -> doubt1 / convince
-	# trust1 x trust2 -> trust1 / convert / confuse (doubt)
-
-	#					doubt1 x doubt2		doubt1 x trust2
-	d1_ = 					d1 * d2_pcv + 	d1 * t2_pcv * (1.0 - ci1) + 
-	#	trust1 x trust2
-		t1 * t2_pcv * cu1 * dist1_pcv
-	#	trust1 x doubt2
-	v1_ = t1 * d2_pcv * v1 + 					d1 * t2_pcv * ci1 * v2_pcv + 
-		t1 * t2_pcv * (1.0 - cu1 * dist1_pcv) * ((1.0 - ce1) * v1 + ce1 * v2_pcv)
-
-	ci2 = par.convince^(1.0/w1)
-	ce2 = par.convert^(1.0/w1)
-	cu2 = par.confuse
-
-	t2 = val2.trust
-	d2 = 1.0 - t2
-	v2 = val2.value
-
-	t1_pcv = sigmoid(rand(), par.error, t1)
-	d1_pcv = 1.0 - t1_pcv
-	v1_pcv = val1.value * (sigmoid(rand(), par.error, 0.5) + 0.5)
-
-	dist2_pcv = abs(v2-v1_pcv) / (v2 + v1_pcv + 0.00001)
-
-	#					doubt2 x doubt1		doubt2 x trust1
-	d2_ = 					d2 * d1_pcv + 	d2 * t1_pcv * (1.0 - ci2) + 
-	#	trust2 x trust1
-		t2 * t1_pcv * cu2 * dist2_pcv
-	#	trust2 x doubt1
-	v2_ = t2 * d1_pcv * v2 + 					d2 * t1_pcv * ci2 * v1_pcv + 
-		t2 * t1_pcv * (1.0 - cu2 * dist2_pcv) * ((1.0 - ce2) * v2 + ce2 * v1_pcv)
+	d2_, v2_ = receive_belief(val2, val1, par2)
 
 	TrustedF(v1_ / (1.0-d1_), 1.0 - d1_), TrustedF(v2_ / (1.0-d2_), 1.0 - d2_)
 end
@@ -423,6 +417,15 @@ end
 function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 	# a1 can never have arrived yet
 	arr = arrived(a2)
+
+	p2 = InfoPars(par.convince, par.convert, par.confuse, par.error)
+	# values a1 experiences, have to be adjusted if a2 has already arrived
+	p1 = if arr
+		InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse, 
+			par.error)
+		else
+			p2
+		end
 
 	for l in eachindex(a1.info_loc)
 		if rand() > par.p_transfer_info
@@ -447,10 +450,8 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if known(info1) && known(info2)
-			res1, res2 = exchange_beliefs(info1.resources, info2.resources, par, 1.0, 
-				arr ? par.weight_arr : 1.0)
-			qual1, qual2 = exchange_beliefs(info1.quality, info2.quality, par, 1.0, 
-				arr ? par.weight_arr : 1.0)
+			res1, res2 = exchange_beliefs(info1.resources, info2.resources, p1, p2)
+			qual1, qual2 = exchange_beliefs(info1.quality, info2.quality, p1, p2)
 			info1.resources = res1
 			info1.quality = qual1
 			# only a2 can have arrived
@@ -489,8 +490,7 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if known(info1) && known(info2)
-			frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, par, 
-				arr ? par.weight_arr : 1.0)
+			frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, p1, p2)
 			info1.friction = frict1
 			if !arr
 				info2.friction = frict2

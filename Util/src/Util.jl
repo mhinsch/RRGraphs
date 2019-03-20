@@ -2,7 +2,7 @@ module Util
 
 
 export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, sigmoid,
-	distance, parse, Pathfinding, StatsAccumulator
+	s_delta, distance, parse, Pathfinding, StatsAccumulator
 
 
 function Base.parse(t :: Type{T}, str) where {T<:Array}
@@ -60,9 +60,10 @@ macro update!(fun, args...)
 end
 
 
-function sigmoid(x, alpha, mid)
+@inline function sigmoid(x, alpha, mid)
 	c = mid/(1.0-mid)
-	x^alpha/(((1.0-x)*c)^alpha + x^alpha)
+	xa = x^alpha
+	xa/(((1.0-x)*c)^alpha + xa)
 end
 
 
@@ -70,7 +71,7 @@ end
 valley(x, bottom, steep, alpha=3) = 
 	abs((x-bottom)^alpha) / (steep^alpha + abs((x-bottom)^alpha))
 
-
+unf_delta(x) = rand() * 2.0 * x - x
 
 limit(mi, v, ma) = min(ma, max(v, mi))
 
