@@ -2,7 +2,7 @@ module Util
 
 
 export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, sigmoid,
-	s_delta, distance, parse, Pathfinding, StatsAccumulator
+	unf_delta, distance, parse, Pathfinding, StatsAccumulator
 
 
 function Base.parse(t :: Type{T}, str) where {T<:Array}
