@@ -4,16 +4,19 @@ export prepare_log, analyse_log, analyse_world
 
 using Util.StatsAccumulator
 
-function print(out, acc :: MaxMinAcc{T}, sep = "\t") where {T}
+import Base.print
+
+
+function print(out::IO, acc :: MaxMinAcc{T}, sep = "\t") where {T}
 	print(out, acc.max, sep, acc.min)
 end
 
-function print(out, acc :: MVAcc{T}, sep = "\t") where {T}
+function print(out::IO, acc :: MVAcc{T}, sep = "\t") where {T}
 	res = result(acc)
 	print(out, res[1], sep, res[2])
 end
 
-function print(out, acc :: AccList, sep = "\t")
+function print(out::IO, acc :: AccList, sep = "\t")
 	for a in acc.list
 		print(out, a, sep)
 		print(out, sep)
@@ -50,9 +53,8 @@ function analyse_log(model, logf)
 		push!(accs, acc)
 	end
 
-	next = 0
-
 	for a in model.migrants
+		next = 0
 		add!(accs[next+=1], a.capital)
 		add!(accs[next+=1], Float64(a.n_locs))
 		add!(accs[next+=1], Float64(a.n_links))
@@ -64,7 +66,7 @@ function analyse_log(model, logf)
 
 
 	for ex in model.world.exits
-		add!(accs[next+=1], Float64(ex.count))
+		add!(accs[end], Float64(ex.count))
 	end
 
 	for a in accs
