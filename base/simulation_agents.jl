@@ -55,15 +55,17 @@ end
 # *********
 
 
+"Quality of a link `link` to location `loc`. Calls `quality(::Infolocation,...)`."
 function quality(link :: InfoLink, loc :: InfoLocation, par)
 	#@assert known(link)
 	#@assert known(loc)
 	#@assert friction(link) >= 0
 	#@assert !isnan(friction(link))
-	# [0:3]					     [0:1.5]	
+	# [0:3]					     [0:1.5], [0:15]	
 	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
 end
 
+"Quality of location `loc`."
 function quality(loc :: InfoLocation, par)
 	# [0:1]
 	discounted(loc.quality) + 
@@ -74,6 +76,7 @@ function quality(loc :: InfoLocation, par)
 end
 
 # TODO properties of waystations
+"Quality of a plan consisting of a sequence of locations."
 function quality(plan :: Vector{InfoLocation}, par)
 	if length(plan) == 2
 		return quality(find_link(plan[2], plan[1]), plan[1], par)
@@ -90,7 +93,7 @@ function quality(plan :: Vector{InfoLocation}, par)
 	q / (1.0 + f * par.qual_weight_frict)
 end
 
-
+"Movement costs from `l1` to `l2`, taking into account `l2`'s quality."
 function costs_quality(l1::InfoLocation, l2::InfoLocation, par)
 	link = find_link(l1, l2)
 	qual = quality(l2, par)
@@ -137,6 +140,10 @@ function plan!(agent, par)
 		r = rand() * (quals[end] - 0.0001)
 		# -1 because first el is stay
 		best = findfirst(x -> x>r, quals) - 1
+	end
+
+	if best == length(quals) - 1 && agent.plan != []
+		agent.planned += 1
 	end
 
 	# either stay or use planned path

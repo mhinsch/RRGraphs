@@ -33,6 +33,7 @@ function prepare_log(logf)
 	header(logf, "n_plan")
 	header(logf, "n_contacts")
 	header(logf, "n_steps")
+	header(logf, "freq_plan")
 	header(logf, "count")
 	print(logf, "n_migrants\t")
 	print(logf, "n_arrived")
@@ -42,7 +43,7 @@ end
 function analyse_log(model, logf)
 	accs = AccList[]
 
-	for i in 1:7
+	for i in 1:8
 		acc = AccList()
 		push!(acc.list, MVAcc{Float64}())
 		push!(acc.list, MaxMinAcc{Float64}())
@@ -58,6 +59,7 @@ function analyse_log(model, logf)
 		add!(accs[next+=1], Float64(length(a.plan)))
 		add!(accs[next+=1], Float64(length(a.contacts)))
 		add!(accs[next+=1], Float64(a.steps))
+		add!(accs[next+=1], Float64(a.planned / (a.steps + 0.00001)))
 	end
 
 

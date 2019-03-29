@@ -4,7 +4,6 @@ struct Pos
 	y :: Float64
 end
 
-
 const Nowhere = Pos(-1.0, -1.0)
 
 
@@ -33,6 +32,7 @@ discounted(t :: Trusted{T}) where {T} = t.value * t.trust
 
 
 update(t :: TrustedF, val, speed) = average(t, TrustedF(val, 1.0-eps(1.0)), speed)
+
 
 average(val :: TrustedF, target :: TrustedF, weight = 0.5) =
 	TrustedF(val.value * (1.0-weight) + target.value * weight, 
