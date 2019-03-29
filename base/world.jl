@@ -93,9 +93,10 @@ mutable struct AgentT{L}
 	capital :: Float64
 	# people at home & in target country, other migrants
 	contacts :: Vector{AgentT{L}}
+	steps :: Int
 end
 
-AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, true, 0, [], [], 0, [], [], c, [])
+AgentT{L}(l::L, c :: Float64) where {L} = AgentT{L}(l, true, 0, [], [], 0, [], [], c, [], 0)
 
 
 target(agent) = length(agent.info_target) > 0 ? agent.info_target[1] : Unknown

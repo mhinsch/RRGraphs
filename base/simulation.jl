@@ -67,7 +67,7 @@ end
 # all agents at target get removed from world (but remain in network)
 function handle_arrivals!(model::Model, par)
 	for i in length(model.migrants):-1:1
-		if model.migrants[i].loc in model.world.exits
+		if arrived(model.migrants[i])
 			agent = model.migrants[i]
 			drop_at!(model.migrants, i)
 			remove_agent!(model.world, agent)

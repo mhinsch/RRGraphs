@@ -1,5 +1,5 @@
 
-include("world_util.jl")
+include("world_path_util.jl")
 
 function costs_stay!(agent, loc :: Location, par)
 	agent.capital += par.ben_resources * loc.resources - par.costs_stay
@@ -19,6 +19,8 @@ function step_agent!(agent::Agent, model::Model, par)
 	end
 
 	step_agent_info!(agent, model, par)
+
+	agent.steps += 1
 end
 
 
@@ -71,6 +73,7 @@ function quality(loc :: InfoLocation, par)
 		discounted(loc.resources) * par.qual_weight_res
 end
 
+# TODO properties of waystations
 function quality(plan :: Vector{InfoLocation}, par)
 	if length(plan) == 2
 		return quality(find_link(plan[2], plan[1]), plan[1], par)
