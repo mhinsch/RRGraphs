@@ -1,8 +1,21 @@
-1
+* rename friction in info/location (keeps confusing me)
+
+* motivated false info (?)
+
+* forget contacts
+	- by success (remaining capital)
+
+* record #steps
+
+* record and communicate routes
+
 * info exchange by interestingness/relevance?
+	- more capital => higher authority?
+
+
+* control?
 
 * time!?
 
 * resources/capital (?)
 
-* control?

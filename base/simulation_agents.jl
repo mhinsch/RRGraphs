@@ -54,10 +54,10 @@ end
 
 
 function quality(link :: InfoLink, loc :: InfoLocation, par)
-	@assert known(link)
-	@assert known(loc)
-	@assert friction(link) >= 0
-	@assert !isnan(friction(link))
+	#@assert known(link)
+	#@assert known(loc)
+	#@assert friction(link) >= 0
+	#@assert !isnan(friction(link))
 	# [0:3]					     [0:1.5]	
 	quality(loc, par) / (1.0 + friction(link)*par.qual_weight_frict)
 end
@@ -71,7 +71,6 @@ function quality(loc :: InfoLocation, par)
 		discounted(loc.resources) * par.qual_weight_res
 end
 
-# TODO properties of waystations
 function quality(plan :: Vector{InfoLocation}, par)
 	if length(plan) == 2
 		return quality(find_link(plan[2], plan[1]), plan[1], par)
