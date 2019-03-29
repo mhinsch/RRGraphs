@@ -4,24 +4,24 @@ export prepare_log, analyse_log, analyse_world
 
 using Util.StatsAccumulator
 
-function log(acc :: MaxMinAcc{T}, logf, sep = "\t") where {T}
-	print(logf, acc.max, sep, acc.min)
+function print(out, acc :: MaxMinAcc{T}, sep = "\t") where {T}
+	print(out, acc.max, sep, acc.min)
 end
 
-function log(acc :: MVAcc{T}, logf, sep = "\t") where {T}
+function print(out, acc :: MVAcc{T}, sep = "\t") where {T}
 	res = result(acc)
-	print(logf, res[1], sep, res[2])
+	print(out, res[1], sep, res[2])
 end
 
-function log(acc :: AccList, logf, sep = "\t")
+function print(out, acc :: AccList, sep = "\t")
 	for a in acc.list
-		log(a, logf, sep)
-		print(logf, sep)
+		print(out, a, sep)
+		print(out, sep)
 	end
 end
 
-function header(logf, name)
-	print(logf, "mean_$name\tvar_$name\tmax_$name\tmin_$name\t")
+function header(out, name)
+	print(out, "mean_$name\tvar_$name\tmax_$name\tmin_$name\t")
 end
 
 
@@ -32,6 +32,7 @@ function prepare_log(logf)
 	header(logf, "n_link")
 	header(logf, "n_plan")
 	header(logf, "n_contacts")
+	header(logf, "n_steps")
 	header(logf, "count")
 	print(logf, "n_migrants\t")
 	print(logf, "n_arrived")
@@ -41,27 +42,31 @@ end
 function analyse_log(model, logf)
 	accs = AccList[]
 
-	for i in 1:6
+	for i in 1:7
 		acc = AccList()
 		push!(acc.list, MVAcc{Float64}())
 		push!(acc.list, MaxMinAcc{Float64}())
 		push!(accs, acc)
 	end
 
+	next = 0
+
 	for a in model.migrants
-		add!(accs[1], a.capital)
-		add!(accs[2], Float64(a.n_locs))
-		add!(accs[3], Float64(a.n_links))
-		add!(accs[4], Float64(length(a.plan)))
-		add!(accs[5], Float64(length(a.contacts)))
+		add!(accs[next+=1], a.capital)
+		add!(accs[next+=1], Float64(a.n_locs))
+		add!(accs[next+=1], Float64(a.n_links))
+		add!(accs[next+=1], Float64(length(a.plan)))
+		add!(accs[next+=1], Float64(length(a.contacts)))
+		add!(accs[next+=1], Float64(a.steps))
 	end
 
+
 	for ex in model.world.exits
-		add!(accs[6], Float64(ex.count))
+		add!(accs[next+=1], Float64(ex.count))
 	end
 
 	for a in accs
-		log(a, logf)
+		print(logf, a)
 	end
 
 	print(logf, length(model.migrants), "\t", length(model.people) - length(model.migrants), "\t")
@@ -70,10 +75,6 @@ function analyse_log(model, logf)
 	flush(logf)
 end
 	
-
-function prepare_out(outf)
-end
-
 
 function analyse_world(model, out_cities, out_links)
 	println(out_cities, "# id	x	y	type	qual	N	links	count")
@@ -92,19 +93,7 @@ function analyse_world(model, out_cities, out_links)
 	end
 end
 
-
-function analyse_out(model, outf)
-	accs = AccList[]
-
-	acc = AccList()
-	push!(acc.list, MVAcc{Float64}())
-	push!(acc.list, MaxMinAcc{Float64}())
-	push!(accs, acc)
-		
-	for ex in model.world.exits
-		add!(acc, Float64(ex.count))
-	end
+function prepare_out(outf)
 end
-
 
 end # module
