@@ -26,6 +26,7 @@ calc_friction(link, par) = link.distance * par.dist_scale[Int(link.typ)]
 function setup_link!(link, par)
 	link.distance = distance(link.l1, link.l2)
 	link.friction = calc_friction(link, par) * (1.0 + rand() * par.frict_range)
+	@assert link.friction > 0
 end
 
 

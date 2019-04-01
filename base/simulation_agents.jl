@@ -46,7 +46,7 @@ function step_agent_stay!(agent, world, par)
 	costs_stay!(agent, agent.loc, par)
 	explore_stay!(agent, world, par)
 	mingle!(agent, agent.loc, world, par)
-	plan!(agent, par)
+	plan_costs!(agent, par)
 end
 
 
@@ -93,17 +93,33 @@ function quality(plan :: Vector{InfoLocation}, par)
 	q / (1.0 + f * par.qual_weight_frict)
 end
 
+
+function costs_quality(loc :: InfoLocation, par)
+	(par.path_weight_frict + 3.0) / 
+		(par.path_weight_frict + quality(loc, par))
+end
+
+function costs_quality(link :: InfoLink, loc :: InfoLocation, par)
+	friction(link) * costs_quality(loc, par)
+end
+
 "Movement costs from `l1` to `l2`, taking into account `l2`'s quality."
 function costs_quality(l1::InfoLocation, l2::InfoLocation, par)
 	link = find_link(l1, l2)
-	qual = quality(l2, par)
+	costs_quality(link, l2, par)
+end
 
-	friction(link) * (par.path_weight_frict + 3.0) / (par.path_weight_frict + qual)
+function costs_quality(plan :: Vector{InfoLocation}, par)
+	c = 0.0
+	for i in 1:length(plan)-1
+		# plan is sorted in reverse (target sits at 1)
+		c += costs_quality(plan[i+1], plan[i], par)
+	end
+	c
 end
 
 
-function plan!(agent, par)
-
+function make_plan!(agent, par)
 	if agent.info_target == []
 		agent.plan = []
 	else
@@ -115,9 +131,56 @@ function plan!(agent, par)
 				path_costs, path_costs_estimate, each_neighbour)
 		end
 	end
+end
 
-	# no plan, try to find better position at least
-	# chose random location with prob prop. to quality
+function plan_costs!(agent, par)
+	make_plan!(agent, par)
+
+	if agent.plan != []
+		agent.planned += 1
+		return agent
+	end
+
+	loc = info_current(agent)
+
+	quals = Float64[]
+	sizehint!(quals, length(loc.links))
+	prev = 0.0
+
+	for l in loc.links
+		c = costs_quality(l, otherside(l, loc), par) + 0.000001
+		#@assert friction(loc.links[i]) > 0
+		#@assert !isnan(c)
+		#@assert c > 0
+		push!(quals, 1.0/c + prev)
+		prev = quals[end]
+	end
+
+	# plan goes into the choice as well
+	#if agent.plan != []
+	#	push!(quals, 1.0/(costs_quality(agent.plan, par)/length(agent.plan)) + prev)
+	#end
+
+	best = 0
+	if quals[end] > 0.0
+		r = rand() * (quals[end] - 0.000001)
+		best = findfirst(x -> x>r, quals)
+	end
+
+	# use planned path
+	#if best == length(quals) && agent.plan != []
+	#	agent.planned += 1
+	#	return agent
+	#end
+
+	# go to best neighbouring location 
+	agent.plan = [otherside(loc.links[best], loc), loc]
+
+	agent
+end
+
+function plan!(agent, par)
+	make_plan!(agent, par)
 
 	loc = info_current(agent)
 
@@ -255,6 +318,7 @@ function discover!(agent, link :: Link, from :: Location, par)
 	@assert known(info_from)
 	info_to = info(agent, otherside(link, from))
 	frict = link.distance * par.frict_exp[Int(link.typ)]
+	@assert frict > 0
 	info_link = InfoLink(link.id, info_from, info_to, TrustedF(frict))
 	add_info!(agent, info_link)
 	# TODO lots of redundancy, possibly join/extend
@@ -499,7 +563,11 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 		
 		# both have knowledge at l, compare by trust and transfer accordingly
 		if known(info1) && known(info2)
+			#@assert info1.friction.value > 0
+			#@assert info2.friction.value > 0
 			frict1, frict2 = exchange_beliefs(info1.friction, info2.friction, p1, p2)
+			#@assert frict1.value > 0 "$(info1.friction.value), $(info1.friction.trust), $(info2.friction.value), $(info2.friction.trust)"
+			#@assert frict2.value > 0
 			info1.friction = frict1
 			if !arr
 				info2.friction = frict2
