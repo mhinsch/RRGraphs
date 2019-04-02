@@ -141,11 +141,11 @@ function plan_costs!(agent, par)
 		return agent
 	end
 
+	loc = info_current(agent)
+
 	if length(loc.links) == 0
 		return agent
 	end
-
-	loc = info_current(agent)
 
 	quals = Float64[]
 	sizehint!(quals, length(loc.links))
