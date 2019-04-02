@@ -141,6 +141,10 @@ function plan_costs!(agent, par)
 		return agent
 	end
 
+	if length(loc.links) == 0
+		return agent
+	end
+
 	loc = info_current(agent)
 
 	quals = Float64[]
