@@ -15,7 +15,9 @@ struct Trusted{T}
 	trust :: Float64
 
 	function Trusted{T}(v :: T, t :: Float64) where {T}
-		@assert 0.0 < t < 1.0
+		@assert 0.0 < t < 1.0 "$v, $t: $t out of bounds!"
+		#@assert v >= T(0)
+
 		new(v, t)
 	end
 end

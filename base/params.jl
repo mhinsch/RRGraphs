@@ -48,6 +48,8 @@ const VF = Vector{Float64}
 	speed_expl_stay :: Float64	= 1.0
 	speed_expl_move :: Float64	= 1.0
 
+	p_drop_contact	:: Float64	= 0.0
+
 	costs_stay		:: Float64	= 1.0
 	ben_resources	:: Float64	= 5.0
 	costs_move		:: Float64	= 2.0

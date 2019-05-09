@@ -19,6 +19,7 @@ function step_agent!(agent::Agent, model::Model, par)
 	end
 
 	step_agent_info!(agent, model, par)
+	step_agent_contacts!(agent, par)
 
 	agent.steps += 1
 end
@@ -454,6 +455,7 @@ function receive_belief(self::TrustedF, other::TrustedF, par)
 	d = 1.0 - t		# doubt
 	v = self.value
 
+	# perceived values after error
 	t_pcv = limit(0.000001, other.trust + unf_delta(par.error), 0.99999)
 	d_pcv = 1.0 - t_pcv
 	v_pcv = max(0.0, other.value + unf_delta(par.error))
@@ -475,7 +477,7 @@ function receive_belief(self::TrustedF, other::TrustedF, par)
 	v_ = t * d_pcv * v + 					d * t_pcv * ci * v_pcv + 
 		t * t_pcv * (1.0 - cu * dist_pcv) * ((1.0 - ce) * v + ce * v_pcv)
 
-	d_, v_
+	limit(0.000001, d_, 0.99999), v_
 end
 
 function exchange_beliefs(val1::TrustedF, val2::TrustedF, par1, par2)
@@ -497,7 +499,7 @@ function exchange_info!(a1::Agent, a2::Agent, world::World, par)
 
 	p2 = InfoPars(par.convince, par.convert, par.confuse, par.error)
 	# values a1 experiences, have to be adjusted if a2 has already arrived
-	p1 = if arr
+	p1 = if arr	
 		InfoPars(par.convince^(1.0/par.weight_arr), par.convert^(1.0/par.weight_arr), par.confuse, 
 			par.error)
 		else
@@ -589,3 +591,16 @@ function step_agent_info!(agent::Agent, model::Model, par)
 	end
 end
 
+
+# ********
+# contacts
+# ********
+
+
+function  step_agent_contacts!(agent, par)
+	for i in length(agent.contacts):-1:1
+		if rand() < par.p_drop_contact
+			drop_at!(agent.contacts, i)
+		end
+	end
+end
