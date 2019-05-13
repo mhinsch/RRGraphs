@@ -28,8 +28,8 @@ const Unknown = InfoLocation(Nowhere, 0, TrustedF(0.0), TrustedF(0.0), [])
 const UnknownLink = InfoLink(0, Unknown, Unknown, TrustedF(0.0))
 
 
-resources(l :: InfoLocation) = l.resources.value
-quality(l :: InfoLocation) = l.quality.value
+#resources(l :: InfoLocation) = l.resources.value
+#quality(l :: InfoLocation) = l.quality.value
 friction(l :: InfoLink) = l.friction.value
 
 
@@ -105,6 +105,8 @@ mutable struct LocationT{L}
 	pos :: Pos
 
 	count :: Int
+	cur_count :: Int
+	traffic :: Float64
 end
 
 
@@ -126,7 +128,7 @@ end
 Link(id, t, l1, l2) = Link(id, t, l1, l2, 0, 0, 0)
 
 
-LocationT{L}(p :: Pos, t, i) where {L} = LocationT{L}(i, t, 0.0, 0.0, [], L[], p, 0)
+LocationT{L}(p :: Pos, t, i) where {L} = LocationT{L}(i, t, 0.0, 0.0, [], L[], p, 0, 0, 0.0)
 # construct empty location
 #LocationT{L}() where {L} = LocationT{L}(Nowhere, STD, 0)
 
@@ -177,6 +179,7 @@ remove_agent!(loc::Location, agent::Agent) = drop!(loc.people, agent)
 function add_agent!(loc::Location, agent::Agent) 
 	push!(loc.people, agent)
 	loc.count += 1
+	loc.cur_count += 1
 end
 
 

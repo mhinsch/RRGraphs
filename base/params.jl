@@ -48,11 +48,12 @@ const VF = Vector{Float64}
 	speed_expl_stay :: Float64	= 1.0
 	speed_expl_move :: Float64	= 1.0
 
-	p_drop_contact	:: Float64	= 0.0
-
 	costs_stay		:: Float64	= 1.0
 	ben_resources	:: Float64	= 5.0
 	costs_move		:: Float64	= 2.0
+
+	ret_traffic		:: Float64	= 0.8
+	weight_count	:: Float64	= 0.001
 
 	qual_weight_x	:: Float64	= 0.5
 	qual_weight_res	:: Float64 = 0.1
@@ -61,6 +62,7 @@ const VF = Vector{Float64}
 	path_weight_frict :: Float64 = 1.0
 
 	p_keep_contact 	:: Float64 	= 0.1
+	p_drop_contact	:: Float64	= 0.0
 	p_info_mingle	:: Float64	= 0.1
 	p_info_contacts	:: Float64	= 0.1
 	p_transfer_info	:: Float64	= 0.1

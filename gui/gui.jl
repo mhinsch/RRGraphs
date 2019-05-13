@@ -121,7 +121,7 @@ while true
 	end
 
 
-	step_simulation!(model, parameters)
+	step_simulation!(model, count, parameters)
 
 	println(count, " #migrants: ", length(model.migrants), 
 		" #arrived: ", length(model.people) - length(model.migrants))

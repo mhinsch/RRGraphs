@@ -100,6 +100,7 @@ function costs_quality(loc :: InfoLocation, par)
 		(par.path_weight_frict + quality(loc, par))
 end
 
+# TODO this should be affected by trust as well
 function costs_quality(link :: InfoLink, loc :: InfoLocation, par)
 	friction(link) * costs_quality(loc, par)
 end
@@ -336,6 +337,10 @@ function discover!(agent, link :: Link, from :: Location, par)
 end
 
 
+function current_quality(loc :: Location, par)  
+	(loc.quality + loc.count * par.weight_count) / (1.0 + loc.count * par.weight_count)
+end
+
 function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 	# knowledge
 	inf = info(agent, loc)
@@ -347,7 +352,7 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 	# gain information on local properties
 	# stochasticity?
 	inf.resources = update(inf.resources, loc.resources, speed)
-	inf.quality = update(inf.quality, loc.quality, speed)
+	inf.quality = update(inf.quality, current_quality(loc, par), speed)
 
 	# only location, no links
 	if ! allow_indirect

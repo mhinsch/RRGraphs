@@ -12,19 +12,29 @@ n_arrived(model) = length(model.people) - length(model.migrants)
 
 function simulate!(model :: Model, steps, par)
 	for i in 1:steps
-		step_simulation!(model, par)
+		step_simulation!(model, i, par)
 	end
 end
 
 
-function step_simulation!(model::Model, par)
+function step_simulation!(model::Model, step, par)
 	handle_departures!(model, par)
 
 	for a in model.migrants
 		step_agent!(a, model, par)
 	end
 
+	for l in model.world.cities
+		step_city!(l, step, par)
+	end
+
 	handle_arrivals!(model, par)
+end
+
+# TODO this could be way more sophisticated
+function step_city!(c, step, par)
+	c.traffic = c.traffic * par.ret_traffic + c.cur_count * (1.0 - par.ret_traffic)
+	c.cur_count = 0
 end
 
 

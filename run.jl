@@ -20,7 +20,7 @@ function run(p, n_steps, log_file)
 	m = Model(w, Agent[], Agent[]);
 
 	for i in 1:n_steps
-		step_simulation!(m, p)
+		step_simulation!(m, i, p)
 		analyse_log(m, log_file)
 		println(i)
 		flush(stdout)
