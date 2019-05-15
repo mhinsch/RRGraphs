@@ -338,7 +338,7 @@ end
 
 
 function current_quality(loc :: Location, par)  
-	(loc.quality + loc.count * par.weight_count) / (1.0 + loc.count * par.weight_count)
+	(loc.quality + loc.traffic * par.weight_traffic) / (1.0 + loc.traffic * par.weight_traffic)
 end
 
 function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)

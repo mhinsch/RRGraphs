@@ -53,7 +53,7 @@ const VF = Vector{Float64}
 	costs_move		:: Float64	= 2.0
 
 	ret_traffic		:: Float64	= 0.8
-	weight_count	:: Float64	= 0.001
+	weight_traffic	:: Float64	= 0.001
 
 	qual_weight_x	:: Float64	= 0.5
 	qual_weight_res	:: Float64 = 0.1
