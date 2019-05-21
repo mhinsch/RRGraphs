@@ -6,7 +6,6 @@ const VF = Vector{Float64}
 
 "Simulation parameters"
 @with_kw struct Params
-	# the macro will move the default values into the constructor
 	"rng seed for the simulation"
 	rand_seed_sim	:: Int		= 113
 	"rng seed for world creation"
