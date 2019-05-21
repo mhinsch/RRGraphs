@@ -38,6 +38,7 @@ function prepare_log(logf)
 	header(logf, "n_steps")
 	header(logf, "freq_plan")
 	header(logf, "count")
+	header(logf, "traffic")
 	print(logf, "n_migrants\t")
 	print(logf, "n_arrived")
 	println(logf)
@@ -46,7 +47,7 @@ end
 function analyse_log(model, logf)
 	accs = AccList[]
 
-	for i in 1:8
+	for i in 1:9
 		acc = AccList()
 		push!(acc.list, MVAcc{Float64}())
 		push!(acc.list, MaxMinAcc{Float64}())
@@ -66,7 +67,8 @@ function analyse_log(model, logf)
 
 
 	for ex in model.world.exits
-		add!(accs[end], Float64(ex.count))
+		add!(accs[end-1], Float64(ex.count))
+		add!(accs[end], Float64(ex.traffic))
 	end
 
 	for a in accs
