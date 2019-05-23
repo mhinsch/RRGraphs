@@ -162,22 +162,11 @@ function plan_costs!(agent, par)
 		prev = quals[end]
 	end
 
-	# plan goes into the choice as well
-	#if agent.plan != []
-	#	push!(quals, 1.0/(costs_quality(agent.plan, par)/length(agent.plan)) + prev)
-	#end
-
 	best = 0
 	if quals[end] > 0.0
 		r = rand() * (quals[end] - 0.000001)
 		best = findfirst(x -> x>r, quals)
 	end
-
-	# use planned path
-	#if best == length(quals) && agent.plan != []
-	#	agent.planned += 1
-	#	return agent
-	#end
 
 	# go to best neighbouring location 
 	agent.plan = [otherside(loc.links[best], loc), loc]
@@ -185,7 +174,8 @@ function plan_costs!(agent, par)
 	agent
 end
 
-function plan!(agent, par)
+
+function plan_old!(agent, par)
 	make_plan!(agent, par)
 
 	loc = info_current(agent)
