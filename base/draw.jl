@@ -122,8 +122,20 @@ function draw_visitors!(canvas, model)
 		draw_link!(canvas, link, 0.5 - val/2)
 	end
 
+	sum = 0
+	ma = 0
 	for city in model.world.cities
-		draw_city!(canvas, city, red(length(city.people)))
+		sum += city.traffic
+		ma = max(ma, city.traffic)
+	end
+
+	if ma == 0
+		ma = 1
+	end
+
+	for city in model.world.cities
+		col :: UInt32 = rgb(min(255.0, city.traffic*50), 0, 0)
+		draw_city!(canvas, city, col)
 	end
 end
 
