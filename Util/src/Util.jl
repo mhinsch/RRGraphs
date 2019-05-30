@@ -1,7 +1,7 @@
 module Util
 
 
-export drop!, drop_at!, @set_to_max!, @update!, bresenham, PageDict, limit, valley, sigmoid,
+export drop!, drop_at!, @set_to_max!, @update!, bresenham, limit, valley, sigmoid,
 	unf_delta, distance, parse, Pathfinding, StatsAccumulator
 
 
@@ -138,7 +138,6 @@ end
 
 
 
-include("page.jl")
 include("Pathfinding.jl")
 include("StatsAccumulator.jl")
 
