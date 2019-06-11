@@ -344,10 +344,11 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 	inf.resources = update(inf.resources, loc.resources, speed)
 	inf.quality = update(inf.quality, current_quality(loc, par), speed)
 
-	# only location, no links
+	# only location, no links, done
 	if ! allow_indirect
 		return inf, loc
 	end
+
 	# gain info on links and linked locations
 	
 	for link in loc.links
@@ -356,9 +357,8 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 		if !known(info_link) && rand() < par.p_find_links
 			info_link = discover!(agent, link, loc, par)
 
-			# TODO imperfect knowledge
-
-			info_link.friction = TrustedF(link.friction, par.trust_found_links)
+			#info_link.friction = TrustedF(link.friction, par.trust_found_links)
+			info_link.friction = update(info_link.friction, link.friction, speed)
 			
 			# no info, but position is known
 			explore_at!(agent, world, otherside(link, loc), 0.0, false, par)
@@ -366,7 +366,7 @@ function explore_at!(agent, world, loc :: Location, speed, allow_indirect, par)
 
 		# we might get info on connected location
 		if known(info_link) && rand() < par.p_find_dests
-			explore_at!(agent, world, otherside(link, loc), 0.5, false, par)
+			explore_at!(agent, world, otherside(link, loc), 0.5 * speed, false, par)
 		end
 	end
 
@@ -400,7 +400,6 @@ function maybe_learn!(agent, link_orig :: InfoLink)
 end
 
 
-# TODO parameterize
 # meet other agents, gain contacts and information
 function mingle!(agent, location, world, par)
 	for a in location.people
