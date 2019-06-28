@@ -4,8 +4,10 @@ simulate migration route dynamics dependent on spread of information
 ## Requirements
 
 * Julia >= 0.7
+* Distributions.jl
 * SimpleDirectMediaLayer.jl 
 * Parameters.jl
+* ArgParse.jl
 
 ## Running the simulation
 
@@ -20,13 +22,9 @@ julia gui/gui.jl
 ### REPL
 
 ```julia
-> push!(LOAD_PATH, ".")
-> include("base/world.jl")
-> include("base/init.jl")
-> include("base/simulation.jl")
-> include("base/params.jl")
-> const pars = Params() # use default values
-> world = create_world(pars)
-> model = Model(world, Agent[], Agent[])
-> step_simulation!(world, pars)
+> include("basic_setup.jl")
+> pars, model = basic_setup();
+> step_simulation!(model, pars)
 ```
+
+For more sophisticated uses have a look at run.jl.
