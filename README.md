@@ -1,3 +1,7 @@
+Caution, this model is not being maintained, use at your own risk.
+
+See [here (pdf)](http://abmhub.cs.ucl.ac.uk/2019/papers/Hinsch_Bijak.pdf) for results and documentation.
+
 # RoutesRumours
 simulate migration route dynamics dependent on spread of information
 
